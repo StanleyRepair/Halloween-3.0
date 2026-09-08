@@ -83,4 +83,14 @@ if(hint&&inAppBrowser&&!standalone){
     requestAnimationFrame(()=>hint.classList.add('show'));
   },1250);
 }
+
+const isMessenger=/Messenger|FBAN\/Messenger|FB_IAB\/Messenger|FBAV/i.test(ua);
+if(isMessenger&&!standalone){
+  const topHint=document.createElement('div');
+  topHint.id='messengerBrowserHint';
+  topHint.innerHTML='<button class="messenger-hint-close" type="button" aria-label="Zamknij">×</button><span class="messenger-dots" aria-hidden="true">⋮</span><span>Kliknij <strong>⋮</strong> i wybierz <strong>Otwórz w przeglądarce</strong></span>';
+  document.body.appendChild(topHint);
+  setTimeout(()=>topHint.classList.add('show'),450);
+  topHint.querySelector('.messenger-hint-close').onclick=()=>{topHint.classList.remove('show');setTimeout(()=>topHint.remove(),220)};
+}
 })();
