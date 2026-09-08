@@ -32,4 +32,13 @@ const installBtn=document.getElementById('appInstallButton');window.addEventList
 function isChromeBrowser(){const ua=navigator.userAgent;const chrome=/Chrome\//.test(ua)||/CriOS\//.test(ua);const otherChromium=/EdgA?\//.test(ua)||/OPR\//.test(ua)||/SamsungBrowser\//.test(ua)||/DuckDuckGo\//.test(ua);return chrome&&!otherChromium}
 const chromeHint=document.getElementById('chromeHint'),chromeHintClose=document.getElementById('chromeHintClose');const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;if(chromeHint&&!isChromeBrowser()&&!standalone&&!sessionStorage.getItem('h3_chrome_hint_seen')){setTimeout(()=>{chromeHint.hidden=false;requestAnimationFrame(()=>chromeHint.classList.add('show'));sessionStorage.setItem('h3_chrome_hint_seen','1')},1200)}if(chromeHintClose)chromeHintClose.onclick=()=>{chromeHint.classList.remove('show');setTimeout(()=>chromeHint.hidden=true,220)};
 const adminTrigger=document.getElementById('hiddenAdminTrigger');let adminTapCount=0,adminTapTimer=null;if(adminTrigger)adminTrigger.addEventListener('click',()=>{adminTapCount++;clearTimeout(adminTapTimer);if(adminTapCount>=5){adminTapCount=0;location.href='./admin.html';return}adminTapTimer=setTimeout(()=>adminTapCount=0,2500)});
+function isEditableTarget(t){return !!t?.closest?.('input,textarea,select,[contenteditable="true"]')}
+document.addEventListener('selectstart',e=>{if(!isEditableTarget(e.target))e.preventDefault()});
+document.addEventListener('contextmenu',e=>{if(!isEditableTarget(e.target))e.preventDefault()});
+document.addEventListener('dragstart',e=>{if(!isEditableTarget(e.target))e.preventDefault()});
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gestureend',e=>e.preventDefault(),{passive:false});
+document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
+let lastTouchEnd=0;document.addEventListener('touchend',e=>{if(isEditableTarget(e.target))return;const now=Date.now();if(now-lastTouchEnd<=320)e.preventDefault();lastTouchEnd=now},{passive:false});
 loadCostumes();button.onclick=spin;again.onclick=spin;
