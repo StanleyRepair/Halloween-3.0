@@ -30,7 +30,6 @@ async function decoratePinnedNews(){
       card.classList.toggle('news-pinned',pinned);
       unwrapBadgeRows(card);
       card.querySelectorAll('.news-pin-icon,.news-pin-web,.news-date').forEach(x=>x.remove());
-
       const dateText=formatNewsDate(post?.created_at);
       if(dateText){
         const date=document.createElement('span');
@@ -39,7 +38,6 @@ async function decoratePinnedNews(){
         const title=card.querySelector('h2');
         if(title)title.insertAdjacentElement('afterend',date);
       }
-
       if(!pinned)return;
       ['tl','tr','bl','br'].forEach(pos=>{
         const web=document.createElement('span');
@@ -48,7 +46,6 @@ async function decoratePinnedNews(){
         web.textContent='🕸️';
         card.appendChild(web);
       });
-
       const pin=document.createElement('span');
       pin.className='news-pin-icon';
       pin.setAttribute('aria-label','Przypięta aktualność');
@@ -77,15 +74,13 @@ const hint=document.getElementById('chromeHint');
 const ua=navigator.userAgent||'';
 const inAppBrowser=/FBAN|FBAV|FB_IAB|Messenger|Instagram/i.test(ua);
 const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-if(hint&&inAppBrowser&&!standalone){
-  setTimeout(()=>{
-    hint.hidden=false;
-    requestAnimationFrame(()=>hint.classList.add('show'));
-  },1250);
-}
+if(hint&&inAppBrowser&&!standalone){setTimeout(()=>{hint.hidden=false;requestAnimationFrame(()=>hint.classList.add('show'))},1250)}
 
 const isMessenger=/Messenger|FBAN\/Messenger|FB_IAB\/Messenger|FBAV/i.test(ua);
 if(isMessenger&&!standalone){
+  if(!document.querySelector('link[data-messenger-hint-css]')){
+    const css=document.createElement('link');css.rel='stylesheet';css.href='messenger-hint.css?v=1';css.dataset.messengerHintCss='1';document.head.appendChild(css);
+  }
   const topHint=document.createElement('div');
   topHint.id='messengerBrowserHint';
   topHint.innerHTML='<button class="messenger-hint-close" type="button" aria-label="Zamknij">×</button><span class="messenger-dots" aria-hidden="true">⋮</span><span>Kliknij <strong>⋮</strong> i wybierz <strong>Otwórz w przeglądarce</strong></span>';
