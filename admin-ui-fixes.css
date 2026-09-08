@@ -1,0 +1,34 @@
+/* Dark form controls and clean empty image state */
+.admin-shell .card input:not([type="checkbox"]):not([type="file"]),
+.admin-shell .card textarea,
+.admin-shell .card select{
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  background:#120b08!important;
+  color:#fff1dc!important;
+  border:1px solid #5b3322!important;
+  caret-color:#ff9d21!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+  outline:none!important;
+}
+.admin-shell .card input:not([type="checkbox"]):not([type="file"])::placeholder,
+.admin-shell .card textarea::placeholder{color:#8f7460!important;opacity:1!important}
+.admin-shell .card input:not([type="checkbox"]):not([type="file"]):focus,
+.admin-shell .card textarea:focus,
+.admin-shell .card select:focus{
+  background:#170d09!important;
+  color:#fff7ea!important;
+  border-color:#c65b20!important;
+  box-shadow:0 0 0 2px rgba(255,106,0,.16),inset 0 1px 0 rgba(255,255,255,.03)!important;
+}
+.admin-shell input:-webkit-autofill,
+.admin-shell input:-webkit-autofill:hover,
+.admin-shell input:-webkit-autofill:focus{
+  -webkit-text-fill-color:#fff1dc!important;
+  -webkit-box-shadow:0 0 0 1000px #120b08 inset!important;
+  caret-color:#ff9d21!important;
+}
+.news-image-preview[hidden]{display:none!important}
+.news-image-picker .news-admin-status{display:none!important}
+.google-photos-logo{width:20px;height:20px;display:inline-block;vertical-align:middle;flex:0 0 auto}
+.gallery-upload[data-google-photos-admin],.upload-action[data-google-photos-contest]{gap:8px}
