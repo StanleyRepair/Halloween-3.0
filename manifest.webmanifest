@@ -1,0 +1,26 @@
+{
+  "name": "Halloween 3.0",
+  "short_name": "Halloween 3.0",
+  "description": "Halloween 3.0 — losowanie przebrania na imprezę.",
+  "lang": "pl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#090706",
+  "theme_color": "#090706",
+  "icons": [
+    {
+      "src": "icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
