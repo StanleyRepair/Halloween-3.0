@@ -11,61 +11,27 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="fog fog-a"></div>
-  <div class="fog fog-b"></div>
-  <div class="web web-tl">✣</div>
-  <div class="web web-tr">✣</div>
-  <div class="web web-bl">✣</div>
-  <div class="web web-br">✣</div>
-  <div class="pumpkin pumpkin-left" aria-hidden="true">🎃</div>
-  <div class="pumpkin pumpkin-right" aria-hidden="true">🎃</div>
-
+  <div class="fog fog-a"></div><div class="fog fog-b"></div>
+  <div class="web web-tl">✣</div><div class="web web-tr">✣</div><div class="web web-bl">✣</div><div class="web web-br">✣</div>
+  <div class="pumpkin pumpkin-left" aria-hidden="true">🎃</div><div class="pumpkin pumpkin-right" aria-hidden="true">🎃</div>
   <main class="page">
     <header class="hero">
       <p class="eyebrow">Noc pełna strachu, śmiechu i chaosu</p>
-      <h1>HALLOWEEN <span>3.0</span></h1>
+      <div class="halloween-logo"><img src="images/napis_halloween.jpg" alt="Halloween 3.0"><span class="logo-edition">3.0</span></div>
       <p class="lead">Nie wiesz, za co się przebrać? <strong>Nie wybieraj.</strong> Niech los zdecyduje.</p>
     </header>
-
     <section class="machine" aria-label="Losowanie przebrania">
-      <div class="machine-top">
-        <span class="bolt"></span>
-        <div class="machine-label">THE COSTUME MACHINE</div>
-        <span class="bolt"></span>
-      </div>
-
+      <div class="machine-top"><span class="bolt"></span><div class="machine-label">THE COSTUME MACHINE</div><span class="bolt"></span></div>
       <div class="reels-shell" id="reelsShell">
-        <div class="reel-window"><div class="reel-track" id="reel1"><div class="symbol">🧛</div><div class="symbol">🧟</div><div class="symbol">🤡</div><div class="symbol">👻</div><div class="symbol">🧙</div></div></div>
-        <div class="reel-window"><div class="reel-track" id="reel2"><div class="symbol">🦇</div><div class="symbol">💀</div><div class="symbol">🧛‍♀️</div><div class="symbol">🎃</div><div class="symbol">🪓</div></div></div>
-        <div class="reel-window"><div class="reel-track" id="reel3"><div class="symbol">👺</div><div class="symbol">🕷️</div><div class="symbol">🧟‍♀️</div><div class="symbol">🧙‍♀️</div><div class="symbol">😈</div></div></div>
-        <div class="reel-glow"></div>
+        <div class="reel-window"><div class="reel-track" id="reel1"></div></div>
+        <div class="reel-window"><div class="reel-track" id="reel2"></div></div>
+        <div class="reel-window"><div class="reel-track" id="reel3"></div></div><div class="reel-glow"></div>
       </div>
-
-      <div class="costume-display" id="costumeDisplay" aria-live="polite">
-        <span>TWÓJ LOS CZEKA...</span>
-      </div>
-
-      <button class="pull-button" id="spinButton" type="button">
-        <span class="pull-icon">↻</span>
-        <span>LOSOWANIE</span>
-      </button>
-
+      <div class="costume-display" id="costumeDisplay" aria-live="polite"><span>TWÓJ LOS CZEKA...</span></div>
+      <button class="pull-button" id="spinButton" type="button"><span class="pull-icon">↻</span><span>LOSOWANIE</span></button>
       <p class="hint">Pociągnij za dźwignię. Nie kombinuj z losem. 👹</p>
     </section>
-
-    <section class="result-card" id="resultCard" hidden>
-      <div class="result-kicker">LOS PRZEMÓWIŁ</div>
-      <div class="result-title" id="resultTitle">...</div>
-      <p id="resultText">Powodzenia. Będziesz go potrzebować.</p>
-      <button class="again-button" id="againButton" type="button">SPRÓBUJ JESZCZE RAZ</button>
-    </section>
-
-    <footer>
-      <span>☠ HALLOWEEN 3.0</span>
-      <span>Nie ponosimy odpowiedzialności za dziwne kostiumy.</span>
-    </footer>
-  </main>
-
-  <script src="script.js"></script>
-</body>
-</html>
+    <section class="result-card" id="resultCard" hidden><div class="result-kicker">LOS PRZEMÓWIŁ</div><div class="result-title" id="resultTitle">...</div><p id="resultText">Powodzenia. Będziesz go potrzebować.</p><button class="again-button" id="againButton" type="button">SPRÓBUJ JESZCZE RAZ</button></section>
+    <footer><span>☠ HALLOWEEN 3.0</span><span>Nie ponosimy odpowiedzialności za dziwne kostiumy.</span></footer>
+  </main><script src="script.js"></script>
+</body></html>
