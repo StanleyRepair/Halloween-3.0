@@ -2,8 +2,8 @@
 <html lang="pl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Halloween 3.0 — wylosuj swoje przebranie jak na jednorękim bandycie." />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Halloween 3.0 — aplikacja imprezy przebieranej." />
   <meta name="theme-color" content="#090706" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Halloween 3.0 🎃</title>
@@ -16,29 +16,125 @@
 </head>
 <body>
   <div class="fog fog-a"></div><div class="fog fog-b"></div>
-  <div class="web web-tl">✣</div><div class="web web-tr">✣</div><div class="web web-bl">✣</div><div class="web web-br">✣</div>
-  <div class="pumpkin pumpkin-left" aria-hidden="true">🎃</div><div class="pumpkin pumpkin-right" aria-hidden="true">🎃</div>
-  <main class="page">
-    <header class="hero">
-      <p class="eyebrow">Noc pełna strachu, śmiechu i chaosu</p>
-      <div class="halloween-title"><img src="images/napis_halloween_transparent.png" alt="Halloween 3. edycja — impreza przebierana"></div>
-      <p class="lead">Nie wiesz, za co się przebrać? <strong>Nie wybieraj.</strong> Niech los zdecyduje.</p>
+  <div class="web web-tl">✣</div><div class="web web-tr">✣</div>
+
+  <main class="app-shell">
+    <header class="app-header">
+      <img src="images/napis_halloween_transparent.png" alt="Halloween 3. edycja — impreza przebierana" class="app-logo">
     </header>
-    <section class="machine" aria-label="Losowanie przebrania">
-      <div class="machine-top"><span class="bolt"></span><div class="machine-label">THE COSTUME MACHINE</div><span class="bolt"></span></div>
-      <div class="reels-shell" id="reelsShell">
-        <div class="reel-window"><div class="reel-track" id="reel1"></div></div>
-        <div class="reel-window"><div class="reel-track" id="reel2"></div></div>
-        <div class="reel-window"><div class="reel-track" id="reel3"></div></div><div class="reel-glow"></div>
+
+    <section class="app-view active" id="view-news" data-view="news" aria-labelledby="nav-news">
+      <div class="section-heading">
+        <span class="section-kicker">HALLOWEEN 3.0</span>
+        <h1>Aktualności</h1>
+        <p>Najważniejsze informacje związane z imprezą w jednym miejscu.</p>
       </div>
-      <div class="costume-display" id="costumeDisplay" aria-live="polite"><span>TWÓJ LOS CZEKA...</span></div>
-      <button class="pull-button" id="spinButton" type="button"><span class="pull-icon">↻</span><span>LOSOWANIE</span></button>
-      <p class="hint">Pociągnij za dźwignię. Nie kombinuj z losem. 👹</p>
+
+      <article class="content-card featured-card">
+        <div class="card-icon">🎃</div>
+        <div>
+          <span class="card-badge">START</span>
+          <h2>Witaj w aplikacji Halloween 3.0</h2>
+          <p>Losowanie przebrania już działa. Galeria zdjęć i konkurs zostaną uruchomione przed imprezą.</p>
+        </div>
+      </article>
+
+      <article class="content-card">
+        <div class="card-icon">🎰</div>
+        <div>
+          <h2>Nie masz pomysłu na przebranie?</h2>
+          <p>Przejdź do zakładki Losowanie i zostaw wybór losowi.</p>
+          <button class="text-action" type="button" data-open-tab="draw">Przejdź do losowania</button>
+        </div>
+      </article>
+
+      <article class="content-card muted-card">
+        <div class="card-icon">📢</div>
+        <div>
+          <h2>Kolejne komunikaty</h2>
+          <p>W tym miejscu pojawią się godziny konkursu, rozpoczęcia głosowania i inne informacje organizacyjne.</p>
+        </div>
+      </article>
     </section>
-    <section class="result-card" id="resultCard" hidden><div class="result-kicker">LOS PRZEMÓWIŁ</div><div class="result-title" id="resultTitle">...</div><p id="resultText">Powodzenia. Będziesz go potrzebować.</p><button class="again-button" id="againButton" type="button">SPRÓBUJ JESZCZE RAZ</button></section>
-    <footer><span>☠ HALLOWEEN 3.0</span><span>Nie ponosimy odpowiedzialności za dziwne kostiumy.</span></footer>
+
+    <section class="app-view" id="view-draw" data-view="draw" aria-labelledby="nav-draw" hidden>
+      <div class="section-heading draw-heading">
+        <span class="section-kicker">THE COSTUME MACHINE</span>
+        <h1>Losowanie</h1>
+        <p>Nie wiesz, za co się przebrać? <strong>Nie wybieraj.</strong> Niech los zdecyduje.</p>
+      </div>
+
+      <section class="machine" aria-label="Losowanie przebrania">
+        <div class="machine-top"><span class="bolt"></span><div class="machine-label">THE COSTUME MACHINE</div><span class="bolt"></span></div>
+        <div class="reels-shell" id="reelsShell">
+          <div class="reel-window"><div class="reel-track" id="reel1"></div></div>
+          <div class="reel-window"><div class="reel-track" id="reel2"></div></div>
+          <div class="reel-window"><div class="reel-track" id="reel3"></div></div>
+          <div class="reel-glow"></div>
+        </div>
+        <div class="costume-display" id="costumeDisplay" aria-live="polite"><span>TWÓJ LOS CZEKA...</span></div>
+        <button class="pull-button" id="spinButton" type="button"><span class="pull-icon">↻</span><span>LOSOWANIE</span></button>
+        <p class="hint">Pociągnij za dźwignię. Nie kombinuj z losem. 👹</p>
+      </section>
+
+      <section class="result-card" id="resultCard" hidden>
+        <div class="result-kicker">LOS PRZEMÓWIŁ</div>
+        <div class="result-title" id="resultTitle">...</div>
+        <p id="resultText">Powodzenia. Będziesz go potrzebować.</p>
+        <button class="again-button" id="againButton" type="button">SPRÓBUJ JESZCZE RAZ</button>
+      </section>
+    </section>
+
+    <section class="app-view" id="view-photos" data-view="photos" aria-labelledby="nav-photos" hidden>
+      <div class="section-heading">
+        <span class="section-kicker">WSPÓLNA GALERIA</span>
+        <h1>Zdjęcia</h1>
+        <p>Tutaj uczestnicy będą mogli dodawać zdjęcia z imprezy i oglądać wspólną galerię.</p>
+      </div>
+
+      <div class="feature-placeholder">
+        <div class="placeholder-icon">📸</div>
+        <h2>Galeria jest przygotowywana</h2>
+        <p>Docelowo zdjęcie będzie można wybrać bezpośrednio z telefonu, wysłać i od razu zobaczyć w galerii.</p>
+        <span class="status-chip">WKRÓTCE</span>
+      </div>
+    </section>
+
+    <section class="app-view" id="view-contest" data-view="contest" aria-labelledby="nav-contest" hidden>
+      <div class="section-heading">
+        <span class="section-kicker">NAJLEPSZE PRZEBRANIE</span>
+        <h1>Konkurs</h1>
+        <p>Zgłoszenia, głosowanie i podium będą działały tutaj bez opuszczania aplikacji.</p>
+      </div>
+
+      <div class="contest-status-card">
+        <div class="contest-status-top">
+          <span class="status-dot"></span>
+          <span>Stan konkursu</span>
+        </div>
+        <h2>Zgłoszenia jeszcze nie wystartowały</h2>
+        <p>Po uruchomieniu konkursu pojawi się formularz ze zdjęciem, imieniem i krótkim opisem.</p>
+      </div>
+
+      <div class="contest-steps">
+        <div class="contest-step"><span>1</span><div><strong>Zgłoszenia</strong><small>Zdjęcie, imię i opis</small></div></div>
+        <div class="contest-step"><span>2</span><div><strong>Głosowanie</strong><small>Maksymalnie 3 głosy</small></div></div>
+        <div class="contest-step"><span>3</span><div><strong>Podium</strong><small>Wyniki po zamknięciu głosowania</small></div></div>
+      </div>
+    </section>
+
+    <footer class="app-footer">☠ HALLOWEEN 3.0</footer>
   </main>
+
   <button class="app-install-button" id="appInstallButton" type="button" hidden aria-label="Zainstaluj aplikację"><span class="app-install-icon" aria-hidden="true">⇩</span><span>APP</span></button>
+
+  <nav class="bottom-nav" aria-label="Główne menu aplikacji">
+    <button class="nav-item active" id="nav-news" type="button" data-tab="news" aria-current="page"><span class="nav-icon">📰</span><span>Aktualności</span></button>
+    <button class="nav-item" id="nav-draw" type="button" data-tab="draw"><span class="nav-icon">🎰</span><span>Losowanie</span></button>
+    <button class="nav-item" id="nav-photos" type="button" data-tab="photos"><span class="nav-icon">📸</span><span>Zdjęcia</span></button>
+    <button class="nav-item" id="nav-contest" type="button" data-tab="contest"><span class="nav-icon">🏆</span><span>Konkurs</span></button>
+  </nav>
+
   <script src="script.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
@@ -52,4 +148,5 @@
       });
     }
   </script>
-</body></html>
+</body>
+</html>
