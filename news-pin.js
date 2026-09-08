@@ -14,14 +14,29 @@ async function decoratePinnedNews(){
       const post=posts[i];
       const pinned=!!post?.pinned;
       card.classList.toggle('news-pinned',pinned);
-      card.querySelectorAll('.news-pin-badge').forEach(x=>x.remove());
-      if(pinned){
-        const badge=document.createElement('div');
-        badge.className='news-pin-badge';
-        badge.innerHTML='<span aria-hidden="true">📌</span><span>PRZYPIĘTE</span>';
-        const copy=card.querySelector('.news-post-copy')||card.querySelector(':scope > div:last-child');
-        if(copy)copy.insertBefore(badge,copy.firstChild);
-        else card.insertBefore(badge,card.firstChild);
+      card.querySelectorAll('.news-pin-icon,.news-pin-web').forEach(x=>x.remove());
+      if(!pinned)return;
+
+      ['tl','tr','bl','br'].forEach(pos=>{
+        const web=document.createElement('span');
+        web.className=`news-pin-web news-pin-web-${pos}`;
+        web.setAttribute('aria-hidden','true');
+        web.textContent='🕸️';
+        card.appendChild(web);
+      });
+
+      const pin=document.createElement('span');
+      pin.className='news-pin-icon';
+      pin.setAttribute('aria-label','Przypięta aktualność');
+      pin.textContent='📌';
+
+      const badge=card.querySelector('.card-badge');
+      if(badge){
+        badge.insertAdjacentElement('afterend',pin);
+      }else{
+        const copy=card.querySelector('.news-post-copy')||card.querySelector('.news-layout-head > div:last-child')||card.querySelector(':scope > div:last-child');
+        if(copy)copy.insertBefore(pin,copy.firstChild);
+        else card.insertBefore(pin,card.firstChild);
       }
     });
   }catch(e){console.warn('Pinned news decoration failed',e)}
