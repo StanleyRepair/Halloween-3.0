@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="42" fill="#090706"/>
+  <circle cx="96" cy="96" r="72" fill="#1b0a07" stroke="#7a180f" stroke-width="6"/>
+  <path d="M63 72c8-21 58-21 66 0 5 14-3 24-16 31-9 5-12 10-12 21H88c0-18 5-27 18-34 8-5 11-9 9-15-3-9-35-9-38 1z" fill="#b51a11"/>
+  <circle cx="95" cy="141" r="9" fill="#b51a11"/>
+  <path d="M104 151c2 12-2 19-7 25 1-11-4-16-2-25z" fill="#6f0805"/>
+  <text x="96" y="49" text-anchor="middle" font-family="Impact,Arial Black,sans-serif" font-size="26" fill="#f06a1a">H3</text>
+</svg>
