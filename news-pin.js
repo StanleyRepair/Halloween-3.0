@@ -8,6 +8,14 @@ function formatNewsDate(value){
   if(Number.isNaN(d.getTime()))return'';
   return new Intl.DateTimeFormat('pl-PL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(d);
 }
+function unwrapBadgeRows(card){
+  card.querySelectorAll('.news-badge-row').forEach(row=>{
+    const parent=row.parentNode;
+    const badge=row.querySelector('.card-badge');
+    if(badge)parent.insertBefore(badge,row);
+    row.remove();
+  });
+}
 async function decoratePinnedNews(){
   if(busy)return;
   busy=true;
@@ -20,6 +28,7 @@ async function decoratePinnedNews(){
       const post=posts[i];
       const pinned=!!post?.pinned;
       card.classList.toggle('news-pinned',pinned);
+      unwrapBadgeRows(card);
       card.querySelectorAll('.news-pin-icon,.news-pin-web,.news-date').forEach(x=>x.remove());
 
       const dateText=formatNewsDate(post?.created_at);
@@ -46,7 +55,10 @@ async function decoratePinnedNews(){
       pin.textContent='📌';
       const badge=card.querySelector('.card-badge');
       if(badge){
-        badge.insertAdjacentElement('afterend',pin);
+        const row=document.createElement('div');
+        row.className='news-badge-row';
+        badge.parentNode.insertBefore(row,badge);
+        row.append(badge,pin);
       }else{
         const copy=card.querySelector('.news-post-copy')||card.querySelector('.news-layout-head > div:last-child')||card.querySelector(':scope > div:last-child');
         if(copy)copy.insertBefore(pin,copy.firstChild);
