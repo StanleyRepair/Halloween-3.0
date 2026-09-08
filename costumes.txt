@@ -1,0 +1,66 @@
+# Nazwa|symbol|opis|typ
+Shrek|🧌|Ogr, bagno i absolutny brak manier.|fantasy
+Harry Potter|🧙‍♂️⚡|Peleryna, różdżka i magia.|wizard
+Atomówka|👧🎀|Mała bohaterka w wielkim stylu.|hero
+Spider Man|🕷️🕸️|Pajęcza sieć i skakanie po ścianach.|hero
+Batman|🦇🦸|Mroczny rycerz Gotham.|hero
+Robin|🦸‍♂️🟢|Młody bohater w zielono czerwonym stylu.|hero
+Superman|🦸‍♂️🔴|Peleryna i supermoce.|hero
+Wonder Woman|🦸‍♀️🛡️|Amazonka gotowa ratować świat.|hero
+Iron Man|🤖❤️|Czerwono złota technologia.|robot
+Hulk|💚💪|Duży, zielony i potężny.|hero
+Kapitan Ameryka|🦸‍♂️🛡️|Tarcza gotowa.|hero
+Deadpool|🥷🔴|Czerwony najemnik.|hero
+Kung Fu Panda|🐼🥋|Mistrz kung fu i jedzenia.|animal
+Ninja|🥷⚔️|Cicho, szybko i bez śladu.|warrior
+Pirata|🏴‍☠️⚓|Łupienie parkietu obowiązkowe.|pirate
+Księżniczka|👸✨|Królewski szyk i brokat.|royal
+Książę|🤴👑|Elegancja i korona.|royal
+Kopciuszek|👠✨|Balowy klimat do północy.|fairytale
+Czerwony Kapturek|🧺🐺|Koszyk i wilk gdzieś blisko.|fairytale
+Wilk|🐺🌕|Pełnia i bardzo zły humor.|monster
+Kot w butach|🐱👢|Miecz, kapelusz i kocie wdzięk.|fairytale
+Jaś i Małgosia|👦🍬|Baśniowa wyprawa po słodycze.|fairytale
+Wiedźma|🧙‍♀️🧹|Miotła, kapelusz i czary.|witch
+Wampir|🧛🩸|Elegancja po zmroku.|horror
+Zombie|🧟🧠|Spacerujący trup na parkiecie.|horror
+Szkielet|💀🦴|Kości już są, teraz tylko kostium.|horror
+Duch|👻🌙|Lekki jak mgła.|horror
+Demon|😈🔥|Czyste piekielne zamieszanie.|horror
+Straszny klaun|🤡🔪|Uśmiech, którego lepiej nie odwzajemniać.|horror
+Rzeźnik|🥩🪓|Fartuch i bardzo zły humor.|horror
+Frankenstein|🧟⚡|Klasyczny potwór z laboratorium.|horror
+Mumia|🧟‍♂️🩹|Zawijaj się i ruszaj na imprezę.|horror
+Kowboj|🤠🐎|Dziki zachód na parkiecie.|western
+Indianin|🪶🏹|Dziki zachód w klasycznym stylu.|western
+Detektyw|🕵️🔎|Śledztwo w sprawie najlepszego kostiumu.|detective
+Policjant|👮🚨|Porządek musi być.|uniform
+Strażak|👨‍🚒🔥|Gotowy gasić imprezę.|uniform
+Lekarz|🧑‍⚕️🩺|Diagnoza: za dużo Halloween.|uniform
+Astronauta|👨‍🚀🚀|Prosto na orbitę.|space
+Robot|🤖⚙️|Tryb automatyczny aktywny.|robot
+Rycerz|⚔️🛡️|Honor, tarcza i miecz.|warrior
+Wiking|🧔‍♂️🪓|Broda, topór i północny klimat.|warrior
+Meduza|🐍👩|Włosy, na które lepiej nie patrzeć.|mythology
+Herkules|🦸‍♂️🏛️|Mitologiczna siła.|mythology
+Król|👑🦁|Władca parkietu.|royal
+Królowa|👸👑|Królewska pewność siebie.|royal
+Myszka z kreskówki|🐭🎀|Klasyczny animowany klimat.|cartoon
+Kaczor z kreskówki|🦆🎩|Gadatliwy i rozpoznawalny styl.|cartoon
+Pikachu|⚡🐭|Mały elektryczny chaos.|cartoon
+Mario|🍄👨‍🔧|Hydraulik gotowy na przygodę.|game
+Luigi|🟢👨‍🔧|Zielony partner od zadań specjalnych.|game
+Joker|🃏🤡|Uśmiech i kontrolowany chaos.|villain
+Harley Quinn|🃏💄|Kolorowy chaos z młotem.|villain
+Gandalf|🧙‍♂️🪄|Siwa broda i magia.|wizard
+Frodo|🧝‍♂️💍|Mały bohater z wielkim zadaniem.|fantasy
+Sherlock Holmes|🕵️🎩|Dedukcja przede wszystkim.|detective
+Rocky|🥊🏆|Rękawice i sportowa ambicja.|sport
+Gangster|🕴️💵|Klasyczny styl starej szkoły.|gangster
+Kucharz|🧑‍🍳🍳|Przepis na dobrą imprezę.|uniform
+Ksiądz|⛪✝️|Nietypowa noc pod opieką księdza.|uniform
+Strach na wróble|🌾🎃|Pilnuje pola i Halloween.|horror
+Rycerz czarnej zbroi|🛡️🖤|Mroczna wersja rycerza.|warrior
+Syrenka|🧜‍♀️🐚|Baśniowy morski klimat.|fantasy
+Wróżka|🧚✨|Skrzydła i odrobina magii.|fairytale
+Jednorożec|🦄🌈|Mityczny jednorożec.|fantasy
