@@ -13,6 +13,8 @@ const result = document.getElementById('resultCard');
 const resultTitle = document.getElementById('resultTitle');
 const resultText = document.getElementById('resultText');
 const again = document.getElementById('againButton');
+const appInstallButton = document.getElementById('appInstallButton');
+let deferredInstallPrompt = null;
 let costumes = [];
 let busy = false;
 
@@ -84,6 +86,37 @@ function spin() {
     button.disabled = false; again.disabled = false; busy = false;
     result.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 3700);
+}
+
+function isStandaloneApp() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  if (!isStandaloneApp() && appInstallButton) appInstallButton.hidden = false;
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  if (appInstallButton) appInstallButton.hidden = true;
+});
+
+if (appInstallButton) {
+  if (isStandaloneApp()) appInstallButton.hidden = true;
+  appInstallButton.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    appInstallButton.disabled = true;
+    try {
+      await deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+    } finally {
+      deferredInstallPrompt = null;
+      appInstallButton.hidden = true;
+      appInstallButton.disabled = false;
+    }
+  });
 }
 
 loadCostumes();
