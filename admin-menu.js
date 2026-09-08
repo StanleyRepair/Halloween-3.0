@@ -12,7 +12,12 @@ const photos=findCard('Zdjęcia');
 const superSection=document.getElementById('superSection');
 const entries=findCard('Zgłoszenia');
 const audit=findCard('Historia zmian');
+
+const homeCard=document.createElement('section');homeCard.className='card admin-home-card';homeCard.innerHTML=`<h2>Strona główna</h2><p class="small">Wybierz zakładkę, która ma otwierać się jako pierwsza po wejściu do aplikacji.</p><div class="home-tab-grid"><button type="button" data-home-tab="news"><span>📰</span><strong>Aktualności</strong></button><button type="button" data-home-tab="draw"><span>🎰</span><strong>Losowanie</strong></button><button type="button" data-home-tab="photos"><span>📸</span><strong>Zdjęcia</strong></button><button type="button" data-home-tab="contest"><span>🏆</span><strong>Konkurs</strong></button></div><div id="homeTabStatus" class="home-tab-status">Pobieranie ustawienia...</div>`;
+if(identity)identity.insertAdjacentElement('afterend',homeCard);else dashboard.prepend(homeCard);
+
 const groups={
+ home:[homeCard],
  contest:[stats,phase,edit,entries].filter(Boolean),
  news:[news].filter(Boolean),
  photos:[photos].filter(Boolean),
@@ -20,13 +25,14 @@ const groups={
  audit:[audit].filter(Boolean)
 };
 const menu=document.createElement('div');menu.className='admin-menu';menu.innerHTML=`
+<button class="admin-menu-tile" data-admin-open="home"><span class="admin-menu-icon">🏠</span><span><span class="admin-menu-title">Strona główna</span><span class="admin-menu-desc">Wybierz pierwszą zakładkę po wejściu</span></span></button>
 <button class="admin-menu-tile" data-admin-open="contest"><span class="admin-menu-icon">🏆</span><span><span class="admin-menu-title">Konkurs</span><span class="admin-menu-desc">Etap konkursu, zgłoszenia i głosy</span></span></button>
 <button class="admin-menu-tile" data-admin-open="news"><span class="admin-menu-icon">📰</span><span><span class="admin-menu-title">Aktualności</span><span class="admin-menu-desc">Dodawanie, zdjęcia, przypinanie i kolejność</span></span></button>
 <button class="admin-menu-tile" data-admin-open="photos"><span class="admin-menu-icon">📸</span><span><span class="admin-menu-title">Zdjęcia</span><span class="admin-menu-desc">Foldery, galerie i album Google Photos</span></span></button>
 <button class="admin-menu-tile" data-admin-open="admins"><span class="admin-menu-icon">🛡️</span><span><span class="admin-menu-title">Administratorzy</span><span class="admin-menu-desc">Uprawnienia, kody i urządzenia</span></span></button>
 <button class="admin-menu-tile" data-admin-open="audit"><span class="admin-menu-icon">📜</span><span><span class="admin-menu-title">Historia zmian</span><span class="admin-menu-desc">Kto i kiedy zmieniał ustawienia</span></span></button>`;
 if(identity)identity.insertAdjacentElement('afterend',menu);else dashboard.prepend(menu);
-const labels={contest:'Konkurs',news:'Aktualności',photos:'Zdjęcia',admins:'Administratorzy',audit:'Historia zmian'};
+const labels={home:'Strona główna',contest:'Konkurs',news:'Aktualności',photos:'Zdjęcia',admins:'Administratorzy',audit:'Historia zmian'};
 for(const [key,els] of Object.entries(groups)){
  const panel=document.createElement('div');panel.className='admin-function-panel';panel.dataset.adminPanel=key;
  const head=document.createElement('div');head.className='admin-function-head';head.innerHTML=`<button class="admin-function-back" type="button" aria-label="Wróć do menu">←</button><h2 class="admin-function-heading">${labels[key]}</h2>`;
@@ -35,10 +41,16 @@ for(const [key,els] of Object.entries(groups)){
  els.forEach(el=>panel.appendChild(el));
 }
 function showMenu(){document.querySelectorAll('.admin-function-panel').forEach(p=>p.classList.remove('active'));menu.hidden=false;window.scrollTo({top:0,behavior:'smooth'});history.replaceState(null,'',location.pathname+location.search)}
-function openPanel(key){const panel=document.querySelector(`.admin-function-panel[data-admin-panel="${key}"]`);if(!panel)return;menu.hidden=true;document.querySelectorAll('.admin-function-panel').forEach(p=>p.classList.toggle('active',p===panel));panel.scrollIntoView({block:'start'});history.replaceState(null,'',`#admin-${key}`)}
+function openPanel(key){const panel=document.querySelector(`.admin-function-panel[data-admin-panel="${key}"]`);if(!panel)return;menu.hidden=true;document.querySelectorAll('.admin-function-panel').forEach(p=>p.classList.toggle('active',p===panel));panel.scrollIntoView({block:'start'});history.replaceState(null,'',`#admin-${key}`);if(key==='home')loadHomeTab()}
 menu.addEventListener('click',e=>{const b=e.target.closest('[data-admin-open]');if(b)openPanel(b.dataset.adminOpen)});
 document.addEventListener('click',e=>{if(e.target.closest('.admin-function-back'))showMenu()});
-function restore(){const m=location.hash.match(/^#admin-(contest|news|photos|admins|audit)$/);if(m&& !dashboard.hidden)openPanel(m[1]);else showMenu()}
+function restore(){const m=location.hash.match(/^#admin-(home|contest|news|photos|admins|audit)$/);if(m&&!dashboard.hidden)openPanel(m[1]);else showMenu()}
 new MutationObserver(()=>{if(!dashboard.hidden)restore()}).observe(dashboard,{attributes:true,attributeFilter:['hidden']});
 if(!dashboard.hidden)restore();
+
+const homeStatus=homeCard.querySelector('#homeTabStatus');
+const homeButtons=[...homeCard.querySelectorAll('[data-home-tab]')];
+function markHome(tab){homeButtons.forEach(b=>b.classList.toggle('active',b.dataset.homeTab===tab));const names={news:'Aktualności',draw:'Losowanie',photos:'Zdjęcia',contest:'Konkurs'};homeStatus.textContent=`Aktualnie jako pierwsza otwiera się: ${names[tab]||'Aktualności'}`}
+async function loadHomeTab(){try{const{data,error}=await sb.rpc('get_app_settings');if(error)throw error;markHome(data?.home_tab||'news')}catch(e){homeStatus.textContent='Nie udało się pobrać ustawienia.'}}
+homeCard.addEventListener('click',async e=>{const b=e.target.closest('[data-home-tab]');if(!b)return;const tab=b.dataset.homeTab;homeButtons.forEach(x=>x.disabled=true);homeStatus.textContent='Zapisywanie...';try{const{data,error}=await sb.rpc('admin_set_home_tab',{p_device_token:adminDevice,p_home_tab:tab});if(error)throw error;markHome(data?.home_tab||tab);if(typeof msg==='function')msg('Strona główna została zmieniona ✓')}catch(err){homeStatus.textContent=err.message||'Nie udało się zapisać ustawienia.';if(typeof msg==='function')msg(homeStatus.textContent,true)}finally{homeButtons.forEach(x=>x.disabled=false)}});
 })();
