@@ -17,7 +17,33 @@
   <main class="page">
     <header class="hero">
       <p class="eyebrow">Noc pełna strachu, śmiechu i chaosu</p>
-      <div class="halloween-logo"><img src="images/napis_halloween.jpg" alt="Halloween 3.0"><span class="logo-edition">3.0</span></div>
+      <div class="halloween-title" role="img" aria-label="Halloween 3.0">
+        <svg viewBox="0 0 1000 330" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="bloodRed" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ff3a24"/>
+              <stop offset=".48" stop-color="#d71912"/>
+              <stop offset="1" stop-color="#7d0907"/>
+            </linearGradient>
+            <filter id="roughText" x="-10%" y="-15%" width="120%" height="135%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.018 0.12" numOctaves="2" seed="13" result="noise"/>
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G"/>
+            </filter>
+            <filter id="redGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="7" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <text class="title-three" x="500" y="128" text-anchor="middle">3.0</text>
+          <text class="title-word title-shadow" x="500" y="235" text-anchor="middle" textLength="900" lengthAdjust="spacingAndGlyphs">HALLOWEEN</text>
+          <text class="title-word title-main" x="500" y="225" text-anchor="middle" textLength="900" lengthAdjust="spacingAndGlyphs" fill="url(#bloodRed)" filter="url(#roughText)">HALLOWEEN</text>
+          <g class="scratch-lines" opacity=".65">
+            <path d="M95 247 L170 228 M158 255 L226 233 M745 248 L818 226 M826 252 L902 230"/>
+            <path d="M112 174 L102 260 M205 164 L196 252 M810 168 L800 250 M902 174 L890 259"/>
+          </g>
+          <text class="title-sub" x="500" y="298" text-anchor="middle">IMPREZA PRZEBIERANA</text>
+        </svg>
+      </div>
       <p class="lead">Nie wiesz, za co się przebrać? <strong>Nie wybieraj.</strong> Niech los zdecyduje.</p>
     </header>
     <section class="machine" aria-label="Losowanie przebrania">
