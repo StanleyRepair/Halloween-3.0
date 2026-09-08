@@ -58,4 +58,7 @@ const versionFooter=document.createElement('footer');versionFooter.className='ad
 const versionEl=versionFooter.querySelector('#adminAppVersion');
 async function refreshVersion(){try{const r=await fetch(`./service-worker.js?version-check=${Date.now()}`,{cache:'no-store'});if(!r.ok)throw new Error();const txt=await r.text();const m=txt.match(/CACHE_NAME\s*=\s*['"]halloween-3-v(\d+)['"]/);versionEl.textContent=m?`v${m[1]}`:'nieznana'}catch{versionEl.textContent='brak połączenia'}}
 refreshVersion();document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshVersion()});
+
+const recoveryStyle=document.createElement('link');recoveryStyle.rel='stylesheet';recoveryStyle.href='admin-recovery.css?v=1';document.head.appendChild(recoveryStyle);
+const recoveryScript=document.createElement('script');recoveryScript.src='admin-recovery.js?v=1';document.body.appendChild(recoveryScript);
 })();
