@@ -1,9 +1,9 @@
-const CACHE_NAME = 'halloween-3-v2';
+const CACHE_NAME = 'halloween-3-v3';
 const CORE_FILES = [
   './',
   './index.html',
-  './style.css',
-  './script.js',
+  './style.css?v=app3',
+  './script.js?v=app3',
   './costumes.txt',
   './manifest.webmanifest',
   './icons/icon-192.svg',
@@ -14,7 +14,7 @@ const CORE_FILES = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(CORE_FILES))
+      .then(cache => cache.addAll(CORE_FILES.map(url => new Request(url, { cache: 'reload' }))))
       .then(() => self.skipWaiting())
   );
 });
@@ -29,11 +29,12 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+
   const requestUrl = new URL(event.request.url);
   if (requestUrl.origin !== self.location.origin) return;
 
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-store' })
       .then(response => {
         if (response && response.ok) {
           const copy = response.clone();
