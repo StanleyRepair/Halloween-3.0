@@ -1,162 +1,29 @@
-const FALLBACK_COSTUMES = [
-  { name: 'Shrek', icon: '🧌', vibe: 'Ogr, bagno i absolutny brak manier.', type: 'fantasy' },
-  { name: 'Wampir', icon: '🧛🩸', vibe: 'Elegancki krwiopijca po zmroku.', type: 'horror' },
-  { name: 'Batman', icon: '🦇🦸', vibe: 'Mroczny rycerz przybywa na imprezę.', type: 'hero' },
-  { name: 'Czarownica', icon: '🧙‍♀️🧹', vibe: 'Miotła, zaklęcia i bardzo podejrzane mikstury.', type: 'witch' },
-  { name: 'Pirata', icon: '🏴‍☠️⚓', vibe: 'Łupienie parkietu obowiązkowe.', type: 'pirate' }
-];
-
-const reels = [document.getElementById('reel1'), document.getElementById('reel2'), document.getElementById('reel3')];
-const button = document.getElementById('spinButton');
-const display = document.getElementById('costumeDisplay');
-const result = document.getElementById('resultCard');
-const resultTitle = document.getElementById('resultTitle');
-const resultText = document.getElementById('resultText');
-const again = document.getElementById('againButton');
-const appInstallButton = document.getElementById('appInstallButton');
-const navItems = [...document.querySelectorAll('.nav-item[data-tab]')];
-const views = [...document.querySelectorAll('.app-view[data-view]')];
-const quickTabButtons = [...document.querySelectorAll('[data-open-tab]')];
-let deferredInstallPrompt = null;
-let costumes = [];
-let busy = false;
-
-function openTab(tab, updateHash = true) {
-  const selected = views.find(view => view.dataset.view === tab) ? tab : 'news';
-  views.forEach(view => {
-    const active = view.dataset.view === selected;
-    view.hidden = !active;
-    view.classList.toggle('active', active);
-  });
-  navItems.forEach(item => {
-    const active = item.dataset.tab === selected;
-    item.classList.toggle('active', active);
-    if (active) item.setAttribute('aria-current', 'page');
-    else item.removeAttribute('aria-current');
-  });
-  if (updateHash) history.replaceState(null, '', `#${selected}`);
-  window.scrollTo({ top: 0, behavior: 'instant' });
-}
-
-navItems.forEach(item => item.addEventListener('click', () => openTab(item.dataset.tab)));
-quickTabButtons.forEach(item => item.addEventListener('click', () => openTab(item.dataset.openTab)));
-const initialTab = location.hash.replace('#', '');
-openTab(['news', 'draw', 'photos', 'contest'].includes(initialTab) ? initialTab : 'news', false);
-
-function parseCostumes(text) {
-  return text.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#')).map(line => {
-    const [name, icon, vibe = '', type = 'default', image = ''] = line.split('|').map(part => part.trim());
-    return { name, icon, vibe, type, image };
-  }).filter(item => item.name && item.icon);
-}
-
-async function loadCostumes() {
-  try {
-    const response = await fetch(`costumes.txt?v=${Date.now()}`, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const parsed = parseCostumes(await response.text());
-    if (!parsed.length) throw new Error('Pusta lista przebrań');
-    costumes = parsed;
-  } catch (error) {
-    console.warn('Nie udało się wczytać costumes.txt. Używam listy awaryjnej.', error);
-    costumes = FALLBACK_COSTUMES;
-  }
-  renderIdleSymbols();
-}
-
-function symbolMarkup(costume) {
-  const visual = costume.image ? `<img src="images/${encodeURIComponent(costume.image)}" alt="" loading="eager" draggable="false">` : `<span class="symbol-emoji" aria-hidden="true">${costume.icon}</span>`;
-  return `<div class="symbol symbol-${costume.type || 'default'}" aria-hidden="true"><div class="symbol-art">${visual}</div><div class="symbol-name">${costume.name}</div></div>`;
-}
-
-function renderIdleSymbols() {
-  const mystery = `<div class="symbol symbol-mystery" aria-hidden="true"><div class="symbol-art"><span class="bloody-question">?</span></div><div class="symbol-name">???</div></div>`;
-  reels.forEach((reel, reelIndex) => {
-    reel.innerHTML = mystery;
-    reel.style.transition = 'none';
-    reel.style.transform = 'translate3d(0,0,0)';
-    reel.dataset.reelIndex = reelIndex;
-  });
-}
-
-function spin() {
-  if (busy || !costumes.length) return;
-  busy = true;
-  result.hidden = true;
-  display.innerHTML = '<span>LOSOWANIE...</span>';
-  button.disabled = true;
-  again.disabled = true;
-  const pick = costumes[Math.floor(Math.random() * costumes.length)];
-  const shuffled = [...costumes].sort(() => Math.random() - 0.5);
-  const rounds = 5;
-  reels.forEach((reel, reelIndex) => {
-    reel.style.transition = 'none';
-    reel.style.transform = 'translate3d(0,0,0)';
-    const sequence = [];
-    for (let round = 0; round < rounds; round += 1) shuffled.forEach(costume => sequence.push(costume));
-    sequence.push(pick);
-    reel.innerHTML = sequence.map(symbolMarkup).join('');
-    const itemHeight = reel.querySelector('.symbol').getBoundingClientRect().height;
-    const offset = (sequence.length - 1) * itemHeight;
-    const duration = 2600 + reelIndex * 650;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      reel.style.transition = `transform ${duration}ms cubic-bezier(.08,.72,.12,1)`;
-      reel.style.transform = `translate3d(0,-${offset}px,0)`;
-    }));
-  });
-  setTimeout(() => {
-    reels.forEach(reel => {
-      const last = reel.lastElementChild;
-      if (!last) return;
-      const height = last.getBoundingClientRect().height;
-      reel.style.transition = 'none';
-      reel.style.transform = `translate3d(0,-${(reel.children.length - 1) * height}px,0)`;
-    });
-    display.innerHTML = '<span>🎃 TRZY TAKIE SAME = WYGRANA! 🎃</span>';
-    resultTitle.textContent = pick.name;
-    resultText.textContent = pick.vibe || 'Powodzenia. Będziesz go potrzebować.';
-    result.hidden = false;
-    result.classList.remove('jackpot');
-    void result.offsetWidth;
-    result.classList.add('jackpot');
-    button.disabled = false;
-    again.disabled = false;
-    busy = false;
-    result.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 3700);
-}
-
-function isStandaloneApp() {
-  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-}
-
-window.addEventListener('beforeinstallprompt', event => {
-  event.preventDefault();
-  deferredInstallPrompt = event;
-  if (!isStandaloneApp() && appInstallButton) appInstallButton.hidden = false;
-});
-
-window.addEventListener('appinstalled', () => {
-  deferredInstallPrompt = null;
-  if (appInstallButton) appInstallButton.hidden = true;
-});
-
-if (appInstallButton) {
-  if (isStandaloneApp()) appInstallButton.hidden = true;
-  appInstallButton.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return;
-    appInstallButton.disabled = true;
-    try {
-      await deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
-    } finally {
-      deferredInstallPrompt = null;
-      appInstallButton.hidden = true;
-      appInstallButton.disabled = false;
-    }
-  });
-}
-
-loadCostumes();
-button.addEventListener('click', spin);
-again.addEventListener('click', spin);
+const SUPABASE_URL='https://jqrzyonpverklusjenej.supabase.co';
+const SUPABASE_KEY='sb_publishable_ncZAYxw3aXlsJYtFOmjG1Q_g3fnCIQ7';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const FALLBACK_COSTUMES=[{name:'Shrek',icon:'🧌',vibe:'Ogr, bagno i absolutny brak manier.',type:'fantasy'},{name:'Wampir',icon:'🧛🩸',vibe:'Elegancki krwiopijca po zmroku.',type:'horror'},{name:'Batman',icon:'🦇🦸',vibe:'Mroczny rycerz przybywa na imprezę.',type:'hero'}];
+const reels=['reel1','reel2','reel3'].map(id=>document.getElementById(id)),button=document.getElementById('spinButton'),display=document.getElementById('costumeDisplay'),result=document.getElementById('resultCard'),resultTitle=document.getElementById('resultTitle'),resultText=document.getElementById('resultText'),again=document.getElementById('againButton');
+const navItems=[...document.querySelectorAll('.nav-item[data-tab]')],views=[...document.querySelectorAll('.app-view[data-view]')];let costumes=[],busy=false,deferredInstallPrompt=null,contestState=null,contestEntries=[],selectedVotes=new Set(),selectedPhoto=null;
+function openTab(tab,updateHash=true){const selected=views.some(v=>v.dataset.view===tab)?tab:'news';views.forEach(v=>{v.hidden=v.dataset.view!==selected;v.classList.toggle('active',v.dataset.view===selected)});navItems.forEach(n=>{const a=n.dataset.tab===selected;n.classList.toggle('active',a);a?n.setAttribute('aria-current','page'):n.removeAttribute('aria-current')});if(updateHash)history.replaceState(null,'',`#${selected}`);window.scrollTo({top:0,behavior:'instant'});if(selected==='contest')loadContest()}
+navItems.forEach(n=>n.addEventListener('click',()=>openTab(n.dataset.tab)));document.querySelectorAll('[data-open-tab]').forEach(n=>n.addEventListener('click',()=>openTab(n.dataset.openTab)));openTab(['news','draw','photos','contest'].includes(location.hash.slice(1))?location.hash.slice(1):'news',false);
+function deviceToken(key){let t=localStorage.getItem(key);if(!t){t=crypto.randomUUID();localStorage.setItem(key,t)}return t}const participantToken=deviceToken('h3_participant_device'),voterToken=deviceToken('h3_voter_device');
+function parseCostumes(t){return t.split(/\r?\n/).map(x=>x.trim()).filter(x=>x&&!x.startsWith('#')).map(line=>{const[name,icon,vibe='',type='default',image='']=line.split('|').map(x=>x.trim());return{name,icon,vibe,type,image}}).filter(x=>x.name&&x.icon)}
+async function loadCostumes(){try{const r=await fetch(`costumes.txt?v=${Date.now()}`,{cache:'no-store'});costumes=parseCostumes(await r.text());if(!costumes.length)throw 0}catch{costumes=FALLBACK_COSTUMES}renderIdleSymbols()}
+function symbolMarkup(c){const v=c.image?`<img src="images/${encodeURIComponent(c.image)}" alt="">`:`<span class="symbol-emoji">${c.icon}</span>`;return`<div class="symbol symbol-${c.type||'default'}"><div class="symbol-art">${v}</div><div class="symbol-name">${c.name}</div></div>`}function renderIdleSymbols(){const m='<div class="symbol symbol-mystery"><div class="symbol-art"><span class="bloody-question">?</span></div><div class="symbol-name">???</div></div>';reels.forEach(r=>{r.innerHTML=m;r.style.transition='none';r.style.transform='translate3d(0,0,0)'})}
+function spin(){if(busy||!costumes.length)return;busy=true;result.hidden=true;display.innerHTML='<span>LOSOWANIE...</span>';button.disabled=true;again.disabled=true;const pick=costumes[Math.floor(Math.random()*costumes.length)],sh=[...costumes].sort(()=>Math.random()-.5);reels.forEach((r,i)=>{const seq=[];for(let q=0;q<5;q++)sh.forEach(c=>seq.push(c));seq.push(pick);r.style.transition='none';r.style.transform='translate3d(0,0,0)';r.innerHTML=seq.map(symbolMarkup).join('');const h=r.querySelector('.symbol').getBoundingClientRect().height,off=(seq.length-1)*h,d=2600+i*650;requestAnimationFrame(()=>requestAnimationFrame(()=>{r.style.transition=`transform ${d}ms cubic-bezier(.08,.72,.12,1)`;r.style.transform=`translate3d(0,-${off}px,0)`}))});setTimeout(()=>{display.innerHTML='<span>🎃 TRZY TAKIE SAME = WYGRANA! 🎃</span>';resultTitle.textContent=pick.name;resultText.textContent=pick.vibe;result.hidden=false;result.classList.add('jackpot');button.disabled=false;again.disabled=false;busy=false;result.scrollIntoView({behavior:'smooth',block:'center'})},3700)}
+const statusTitle=document.getElementById('contestStatusTitle'),statusText=document.getElementById('contestStatusText'),entryPanel=document.getElementById('entryPanel'),entriesPanel=document.getElementById('entriesPanel'),podiumPanel=document.getElementById('podiumPanel'),grid=document.getElementById('contestGrid'),saveVotes=document.getElementById('saveVotes'),voteCounter=document.getElementById('voteCounter'),msg=document.getElementById('contestMessage');
+function showMessage(text,error=false){msg.textContent=text;msg.className='contest-message'+(error?' error':'');msg.hidden=false;setTimeout(()=>msg.hidden=true,5000)}
+async function loadContest(){try{const{data:s,error:e}=await sb.rpc('get_contest_state');if(e)throw e;contestState=Array.isArray(s)?s[0]:s;renderContestState();if(contestState.phase!=='closed')await loadEntries()}catch(e){statusTitle.textContent='Nie udało się połączyć';statusText.textContent='Sprawdź połączenie z internetem.';console.error(e)}}
+function renderContestState(){const p=contestState.phase;entryPanel.hidden=p!=='registration';entriesPanel.hidden=!['registration','voting','finished'].includes(p);podiumPanel.hidden=p!=='finished';const map={closed:['Konkurs jeszcze nie wystartował','Organizator uruchomi zgłoszenia w odpowiednim momencie.'],registration:['Zgłoszenia są otwarte','Dodaj jedno zdjęcie swojego przebrania.'],voting:['Głosowanie trwa','Wybierz maksymalnie 3 najlepsze przebrania. Głosy możesz zmienić.'],finished:['Głosowanie zakończone','Oto zwycięzcy Halloween 3.0.']};[statusTitle.textContent,statusText.textContent]=map[p]||map.closed;document.getElementById('contestDot').classList.toggle('live',p==='registration'||p==='voting')}
+async function loadEntries(){const{data,error}=await sb.rpc('get_public_entries',{p_voter_token:voterToken});if(error)throw error;contestEntries=data||[];selectedVotes=new Set(contestEntries.filter(x=>x.my_vote).map(x=>x.id));renderEntries()}
+function esc(v=''){const d=document.createElement('div');d.textContent=v;return d.innerHTML}function publicPhoto(path){return `${SUPABASE_URL}/storage/v1/object/public/contest-photos/${path.split('/').map(encodeURIComponent).join('/')}`}
+function renderEntries(){const voting=contestState.phase==='voting',finished=contestState.phase==='finished';document.getElementById('entriesTitle').textContent=finished?'Wyniki':'Uczestnicy';document.getElementById('voteHelp').textContent=voting?'Dotknij zdjęcia, aby oddać lub cofnąć głos.':'';voteCounter.hidden=!voting;saveVotes.hidden=!voting;grid.innerHTML=contestEntries.map(x=>`<article class="candidate-card ${selectedVotes.has(x.id)?'selected':''}" data-entry="${x.id}"><img src="${publicPhoto(x.image_path)}" alt="Przebranie: ${esc(x.name)}"><div class="candidate-body"><strong>${esc(x.name)}</strong><p>${esc(x.description||'')}</p>${finished?`<span class="votes-result">${x.vote_count} gł.</span>`:''}${voting?'<span class="vote-check">✓</span>':''}</div></article>`).join('')||'<div class="empty-note">Brak zgłoszeń.</div>';if(voting)grid.querySelectorAll('[data-entry]').forEach(c=>c.onclick=()=>toggleVote(c.dataset.entry));updateVoteCounter();if(finished)renderPodium()}
+function toggleVote(id){if(selectedVotes.has(id))selectedVotes.delete(id);else if(selectedVotes.size<3)selectedVotes.add(id);else return showMessage('Możesz wybrać maksymalnie 3 przebrania.',true);renderEntries()}
+function updateVoteCounter(){voteCounter.textContent=`${selectedVotes.size} / 3`}
+saveVotes.onclick=async()=>{saveVotes.disabled=true;try{const{error}=await sb.rpc('set_my_votes',{p_voter_token:voterToken,p_entry_ids:[...selectedVotes]});if(error)throw error;showMessage('Głosy zapisane ✓');await loadEntries()}catch(e){showMessage(e.message||'Nie udało się zapisać głosów.',true)}finally{saveVotes.disabled=false}};
+function renderPodium(){const top=[...contestEntries].sort((a,b)=>b.vote_count-a.vote_count).slice(0,3);document.getElementById('podium').innerHTML=top.map((x,i)=>`<div class="podium-place place-${i+1}"><div class="medal">${['🥇','🥈','🥉'][i]}</div><img src="${publicPhoto(x.image_path)}" alt=""><strong>${esc(x.name)}</strong><span>${x.vote_count} gł.</span></div>`).join('')}
+async function compressImage(file){const img=await createImageBitmap(file),max=1600,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);return new Promise(r=>canvas.toBlob(r,'image/jpeg',.82))}
+async function choosePhoto(file){if(!file)return;try{selectedPhoto=await compressImage(file);const preview=document.getElementById('entryPreview');preview.src=URL.createObjectURL(selectedPhoto);preview.hidden=false}catch{showMessage('Nie udało się odczytać zdjęcia.',true)}}
+document.getElementById('galleryInput').onchange=e=>choosePhoto(e.target.files[0]);document.getElementById('cameraInput').onchange=e=>choosePhoto(e.target.files[0]);document.getElementById('submitEntry').onclick=async function(){const name=document.getElementById('entryName').value.trim(),description=document.getElementById('entryDescription').value.trim();if(!selectedPhoto)return showMessage('Najpierw wybierz lub zrób zdjęcie.',true);if(name.length<2)return showMessage('Wpisz imię.',true);this.disabled=true;try{const path=`entries/${participantToken}/${crypto.randomUUID()}.jpg`;const{error:u}=await sb.storage.from('contest-photos').upload(path,selectedPhoto,{contentType:'image/jpeg',upsert:false});if(u)throw u;const{error}=await sb.rpc('submit_contest_entry',{p_participant_token:participantToken,p_name:name,p_description:description,p_image_path:path});if(error)throw error;showMessage('Zgłoszenie przyjęte 🎃');entryPanel.hidden=true;await loadContest()}catch(e){showMessage(e.message||'Nie udało się wysłać zgłoszenia.',true)}finally{this.disabled=false}};
+const installBtn=document.getElementById('appInstallButton');window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;installBtn.hidden=false});installBtn.onclick=async()=>{if(!deferredInstallPrompt)return;await deferredInstallPrompt.prompt();deferredInstallPrompt=null;installBtn.hidden=true};window.addEventListener('appinstalled',()=>installBtn.hidden=true);
+loadCostumes();button.onclick=spin;again.onclick=spin;
