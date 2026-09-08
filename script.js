@@ -17,14 +17,10 @@ let costumes = [];
 let busy = false;
 
 function parseCostumes(text) {
-  return text.split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('#'))
-    .map((line) => {
-      const [name, icon, vibe = '', type = 'default', image = ''] = line.split('|').map((part) => part.trim());
-      return { name, icon, vibe, type, image };
-    })
-    .filter((item) => item.name && item.icon);
+  return text.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#')).map(line => {
+    const [name, icon, vibe = '', type = 'default', image = ''] = line.split('|').map(part => part.trim());
+    return { name, icon, vibe, type, image };
+  }).filter(item => item.name && item.icon);
 }
 
 async function loadCostumes() {
@@ -42,20 +38,14 @@ async function loadCostumes() {
 }
 
 function symbolMarkup(costume) {
-  const visual = costume.image
-    ? `<img src="images/${encodeURIComponent(costume.image)}" alt="" loading="eager" draggable="false">`
-    : `<span class="symbol-emoji" aria-hidden="true">${costume.icon}</span>`;
-
-  return `<div class="symbol symbol-${costume.type || 'default'}" aria-hidden="true">
-    <div class="symbol-art">${visual}</div>
-    <div class="symbol-name">${costume.name}</div>
-  </div>`;
+  const visual = costume.image ? `<img src="images/${encodeURIComponent(costume.image)}" alt="" loading="eager" draggable="false">` : `<span class="symbol-emoji" aria-hidden="true">${costume.icon}</span>`;
+  return `<div class="symbol symbol-${costume.type || 'default'}" aria-hidden="true"><div class="symbol-art">${visual}</div><div class="symbol-name">${costume.name}</div></div>`;
 }
 
 function renderIdleSymbols() {
-  const starter = costumes.slice(0, 5);
+  const mystery = `<div class="symbol symbol-mystery" aria-hidden="true"><div class="symbol-art"><span class="bloody-question">?</span></div><div class="symbol-name">???</div></div>`;
   reels.forEach((reel, reelIndex) => {
-    reel.innerHTML = starter.map(symbolMarkup).join('');
+    reel.innerHTML = mystery;
     reel.style.transition = 'none';
     reel.style.transform = 'translate3d(0,0,0)';
     reel.dataset.reelIndex = reelIndex;
@@ -64,55 +54,34 @@ function renderIdleSymbols() {
 
 function spin() {
   if (busy || !costumes.length) return;
-  busy = true;
-  result.hidden = true;
-  display.innerHTML = '<span>LOSOWANIE...</span>';
-  button.disabled = true;
-  again.disabled = true;
-
+  busy = true; result.hidden = true; display.innerHTML = '<span>LOSOWANIE...</span>'; button.disabled = true; again.disabled = true;
   const pick = costumes[Math.floor(Math.random() * costumes.length)];
   const shuffled = [...costumes].sort(() => Math.random() - 0.5);
   const rounds = 5;
-
   reels.forEach((reel, reelIndex) => {
-    reel.style.transition = 'none';
-    reel.style.transform = 'translate3d(0,0,0)';
-
+    reel.style.transition = 'none'; reel.style.transform = 'translate3d(0,0,0)';
     const sequence = [];
-    for (let round = 0; round < rounds; round += 1) shuffled.forEach((costume) => sequence.push(costume));
+    for (let round = 0; round < rounds; round += 1) shuffled.forEach(costume => sequence.push(costume));
     sequence.push(pick);
-
     reel.innerHTML = sequence.map(symbolMarkup).join('');
-    const item = reel.querySelector('.symbol');
-    const itemHeight = item.getBoundingClientRect().height;
+    const itemHeight = reel.querySelector('.symbol').getBoundingClientRect().height;
     const offset = (sequence.length - 1) * itemHeight;
     const duration = 2600 + reelIndex * 650;
-
     requestAnimationFrame(() => requestAnimationFrame(() => {
       reel.style.transition = `transform ${duration}ms cubic-bezier(.08,.72,.12,1)`;
       reel.style.transform = `translate3d(0,-${offset}px,0)`;
     }));
   });
-
   setTimeout(() => {
-    reels.forEach((reel) => {
-      const last = reel.lastElementChild;
-      if (!last) return;
+    reels.forEach(reel => {
+      const last = reel.lastElementChild; if (!last) return;
       const height = last.getBoundingClientRect().height;
-      reel.style.transition = 'none';
-      reel.style.transform = `translate3d(0,-${(reel.children.length - 1) * height}px,0)`;
+      reel.style.transition = 'none'; reel.style.transform = `translate3d(0,-${(reel.children.length - 1) * height}px,0)`;
     });
-
     display.innerHTML = '<span>🎃 TRZY TAKIE SAME = WYGRANA! 🎃</span>';
-    resultTitle.textContent = pick.name;
-    resultText.textContent = pick.vibe || 'Powodzenia. Będziesz go potrzebować.';
-    result.hidden = false;
-    result.classList.remove('jackpot');
-    void result.offsetWidth;
-    result.classList.add('jackpot');
-    button.disabled = false;
-    again.disabled = false;
-    busy = false;
+    resultTitle.textContent = pick.name; resultText.textContent = pick.vibe || 'Powodzenia. Będziesz go potrzebować.';
+    result.hidden = false; result.classList.remove('jackpot'); void result.offsetWidth; result.classList.add('jackpot');
+    button.disabled = false; again.disabled = false; busy = false;
     result.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 3700);
 }
