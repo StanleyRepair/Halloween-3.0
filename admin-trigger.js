@@ -18,9 +18,10 @@ function showBrowserNotice(){
  toastTimer=setTimeout(()=>{toast.style.opacity='0';toast.style.transform='translate(-50%,14px)'},2600);
 }
 const onTap=()=>{
- if(!standalone){showBrowserNotice();return}
  const now=Date.now();if(now-lastTap>3000)taps=0;lastTap=now;taps+=1;
- if(taps>=5){taps=0;window.location.assign('./admin.html')}
+ if(taps<5)return;
+ taps=0;
+ if(standalone){window.location.assign('./admin.html')}else{showBrowserNotice()}
 };
 trigger.addEventListener('pointerup',onTap,{passive:true});
 })();
