@@ -2,6 +2,12 @@
 const section=document.querySelector('[data-view="news"]');
 if(!section)return;
 let busy=false,timer=null;
+function formatNewsDate(value){
+  if(!value)return'';
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime()))return'';
+  return new Intl.DateTimeFormat('pl-PL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(d);
+}
 async function decoratePinnedNews(){
   if(busy)return;
   busy=true;
@@ -14,9 +20,18 @@ async function decoratePinnedNews(){
       const post=posts[i];
       const pinned=!!post?.pinned;
       card.classList.toggle('news-pinned',pinned);
-      card.querySelectorAll('.news-pin-icon,.news-pin-web').forEach(x=>x.remove());
-      if(!pinned)return;
+      card.querySelectorAll('.news-pin-icon,.news-pin-web,.news-date').forEach(x=>x.remove());
 
+      const dateText=formatNewsDate(post?.created_at);
+      if(dateText){
+        const date=document.createElement('span');
+        date.className='news-date';
+        date.textContent=dateText;
+        const title=card.querySelector('h2');
+        if(title)title.insertAdjacentElement('afterend',date);
+      }
+
+      if(!pinned)return;
       ['tl','tr','bl','br'].forEach(pos=>{
         const web=document.createElement('span');
         web.className=`news-pin-web news-pin-web-${pos}`;
@@ -29,7 +44,6 @@ async function decoratePinnedNews(){
       pin.className='news-pin-icon';
       pin.setAttribute('aria-label','Przypięta aktualność');
       pin.textContent='📌';
-
       const badge=card.querySelector('.card-badge');
       if(badge){
         badge.insertAdjacentElement('afterend',pin);
@@ -39,11 +53,22 @@ async function decoratePinnedNews(){
         else card.insertBefore(pin,card.firstChild);
       }
     });
-  }catch(e){console.warn('Pinned news decoration failed',e)}
+  }catch(e){console.warn('News decoration failed',e)}
   finally{busy=false}
 }
 function schedule(){clearTimeout(timer);timer=setTimeout(decoratePinnedNews,100)}
 new MutationObserver(schedule).observe(section,{childList:true,subtree:false});
 document.querySelector('.nav-item[data-tab="news"]')?.addEventListener('click',()=>setTimeout(decoratePinnedNews,180));
 setTimeout(decoratePinnedNews,350);
+
+const hint=document.getElementById('chromeHint');
+const ua=navigator.userAgent||'';
+const inAppBrowser=/FBAN|FBAV|FB_IAB|Messenger|Instagram/i.test(ua);
+const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+if(hint&&inAppBrowser&&!standalone){
+  setTimeout(()=>{
+    hint.hidden=false;
+    requestAnimationFrame(()=>hint.classList.add('show'));
+  },1250);
+}
 })();
