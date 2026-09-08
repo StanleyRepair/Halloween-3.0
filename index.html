@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@400;600;700;800&family=Metal+Mania&display=swap&subset=latin-ext" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=app3" />
 </head>
 <body>
   <div class="fog fog-a"></div><div class="fog fog-b"></div>
@@ -135,13 +135,13 @@
     <button class="nav-item" id="nav-contest" type="button" data-tab="contest"><span class="nav-icon">🏆</span><span>Konkurs</span></button>
   </nav>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=app3"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', async () => {
         try {
           const registration = await navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' });
-          registration.update();
+          await registration.update();
         } catch (error) {
           console.warn('Service worker registration failed:', error);
         }
