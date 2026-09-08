@@ -14,9 +14,34 @@ const resultTitle = document.getElementById('resultTitle');
 const resultText = document.getElementById('resultText');
 const again = document.getElementById('againButton');
 const appInstallButton = document.getElementById('appInstallButton');
+const navItems = [...document.querySelectorAll('.nav-item[data-tab]')];
+const views = [...document.querySelectorAll('.app-view[data-view]')];
+const quickTabButtons = [...document.querySelectorAll('[data-open-tab]')];
 let deferredInstallPrompt = null;
 let costumes = [];
 let busy = false;
+
+function openTab(tab, updateHash = true) {
+  const selected = views.find(view => view.dataset.view === tab) ? tab : 'news';
+  views.forEach(view => {
+    const active = view.dataset.view === selected;
+    view.hidden = !active;
+    view.classList.toggle('active', active);
+  });
+  navItems.forEach(item => {
+    const active = item.dataset.tab === selected;
+    item.classList.toggle('active', active);
+    if (active) item.setAttribute('aria-current', 'page');
+    else item.removeAttribute('aria-current');
+  });
+  if (updateHash) history.replaceState(null, '', `#${selected}`);
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+navItems.forEach(item => item.addEventListener('click', () => openTab(item.dataset.tab)));
+quickTabButtons.forEach(item => item.addEventListener('click', () => openTab(item.dataset.openTab)));
+const initialTab = location.hash.replace('#', '');
+openTab(['news', 'draw', 'photos', 'contest'].includes(initialTab) ? initialTab : 'news', false);
 
 function parseCostumes(text) {
   return text.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#')).map(line => {
@@ -56,12 +81,17 @@ function renderIdleSymbols() {
 
 function spin() {
   if (busy || !costumes.length) return;
-  busy = true; result.hidden = true; display.innerHTML = '<span>LOSOWANIE...</span>'; button.disabled = true; again.disabled = true;
+  busy = true;
+  result.hidden = true;
+  display.innerHTML = '<span>LOSOWANIE...</span>';
+  button.disabled = true;
+  again.disabled = true;
   const pick = costumes[Math.floor(Math.random() * costumes.length)];
   const shuffled = [...costumes].sort(() => Math.random() - 0.5);
   const rounds = 5;
   reels.forEach((reel, reelIndex) => {
-    reel.style.transition = 'none'; reel.style.transform = 'translate3d(0,0,0)';
+    reel.style.transition = 'none';
+    reel.style.transform = 'translate3d(0,0,0)';
     const sequence = [];
     for (let round = 0; round < rounds; round += 1) shuffled.forEach(costume => sequence.push(costume));
     sequence.push(pick);
@@ -76,14 +106,22 @@ function spin() {
   });
   setTimeout(() => {
     reels.forEach(reel => {
-      const last = reel.lastElementChild; if (!last) return;
+      const last = reel.lastElementChild;
+      if (!last) return;
       const height = last.getBoundingClientRect().height;
-      reel.style.transition = 'none'; reel.style.transform = `translate3d(0,-${(reel.children.length - 1) * height}px,0)`;
+      reel.style.transition = 'none';
+      reel.style.transform = `translate3d(0,-${(reel.children.length - 1) * height}px,0)`;
     });
     display.innerHTML = '<span>🎃 TRZY TAKIE SAME = WYGRANA! 🎃</span>';
-    resultTitle.textContent = pick.name; resultText.textContent = pick.vibe || 'Powodzenia. Będziesz go potrzebować.';
-    result.hidden = false; result.classList.remove('jackpot'); void result.offsetWidth; result.classList.add('jackpot');
-    button.disabled = false; again.disabled = false; busy = false;
+    resultTitle.textContent = pick.name;
+    resultText.textContent = pick.vibe || 'Powodzenia. Będziesz go potrzebować.';
+    result.hidden = false;
+    result.classList.remove('jackpot');
+    void result.offsetWidth;
+    result.classList.add('jackpot');
+    button.disabled = false;
+    again.disabled = false;
+    busy = false;
     result.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 3700);
 }
