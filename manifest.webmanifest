@@ -1,4 +1,5 @@
 {
+  "id": "./",
   "name": "Halloween 3.0",
   "short_name": "Halloween 3.0",
   "description": "Halloween 3.0 — aplikacja imprezy przebieranej.",
@@ -9,6 +10,9 @@
   "orientation": "portrait-primary",
   "background_color": "#090706",
   "theme_color": "#090706",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "icons/halloween-icon-192.png?v=7",
