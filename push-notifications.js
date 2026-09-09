@@ -11,6 +11,7 @@ function waitForSW(ms=7000){return Promise.race([navigator.serviceWorker.ready,n
 async function saveSubscription(sub){const json=sub.toJSON();const{error}=await sb.rpc('save_push_subscription',{p_endpoint:json.endpoint,p_p256dh:json.keys?.p256dh||'',p_auth:json.keys?.auth||'',p_user_agent:navigator.userAgent});if(error)throw error}
 function setCard(text,label='Włącz',disabled=false){if(!card)return;copy.textContent=text;btn.textContent=label;btn.disabled=disabled;card.hidden=false}
 function closeHelp(){if(help)help.hidden=true}
+function toggleHelp(){if(!help)return;if(help.hidden)showHelp();else closeHelp()}
 function deniedHelp(){
   if(isAndroid)return `<strong>Jak odblokować powiadomienia</strong><ol><li>Przytrzymaj ikonę <b>Halloween 3.0</b> i otwórz <b>Informacje o aplikacji</b> lub symbol ⓘ. Wejdź w <b>Powiadomienia</b> i zezwól na nie.</li><li>Jeśli nadal jest blokada, otwórz stronę w <b>Chrome</b>, potem wejdź w ustawienia witryny i ustaw <b>Powiadomienia → Zezwalaj</b> dla <b>stanleyrepair.github.io</b>.</li><li>Wróć do aplikacji. Stan zostanie sprawdzony automatycznie.</li></ol><small>Nazwy pozycji mogą się lekko różnić między Samsungiem, Xiaomi, Infinix, Motorolą i innymi telefonami.</small>`;
   if(isIOS)return `<strong>Jak odblokować powiadomienia</strong><ol><li>Otwórz <b>Ustawienia</b> i znajdź <b>Powiadomienia</b>.</li><li>Wybierz <b>Halloween 3.0</b> i włącz zezwolenie na powiadomienia.</li><li>Wróć do aplikacji. Stan zostanie sprawdzony automatycznie.</li></ol>`;
@@ -37,7 +38,7 @@ async function ensureSubscription(showConfirmation=false){
 }
 async function requestAndSubscribe(){
   if(busy||!canPush())return;
-  if(Notification.permission==='denied'){showHelp();return}
+  if(Notification.permission==='denied'){toggleHelp();return}
   btn.disabled=true;
   try{
     const before=Notification.permission;
@@ -95,7 +96,7 @@ async function init(){
   card.innerHTML='<div class="push-optin-icon">🔔</div><div class="push-optin-copy"><strong>Włącz powiadomienia</strong><small>Dostaniesz ważne aktualności nawet gdy aplikacja jest zamknięta.</small></div><button type="button" class="push-optin-btn">Włącz</button><div class="push-help" hidden></div>';
   news.querySelector('.section-heading')?.insertAdjacentElement('afterend',card);
   btn=card.querySelector('.push-optin-btn');copy=card.querySelector('.push-optin-copy small');help=card.querySelector('.push-help');
-  btn.addEventListener('click',()=>{if(canPush()&&Notification.permission==='denied')showHelp();else requestAndSubscribe()});
+  btn.addEventListener('click',()=>{if(canPush()&&Notification.permission==='denied')toggleHelp();else requestAndSubscribe()});
   await refreshState(false);watchPermission();
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>refreshState(false),250)});
   window.addEventListener('focus',()=>setTimeout(()=>refreshState(false),250));
