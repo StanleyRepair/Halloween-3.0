@@ -40,13 +40,13 @@
         </activity>
 
         <activity
-            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+            android:name=".H3LauncherActivity"
             android:exported="true"
             android:label="@string/app_name">
 
             <meta-data
                 android:name="android.support.customtabs.trusted.DEFAULT_URL"
-                android:value="https://stanleyrepair.github.io/Halloween-3.0/?h3apk=1&amp;h3appver=${appVersionName}&amp;h3appcode=${appVersionCode}" />
+                android:value="https://stanleyrepair.github.io/Halloween-3.0/" />
 
             <meta-data
                 android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
