@@ -6,10 +6,14 @@ try{
   const u=new URL(location.href);
   if(u.searchParams.get('h3apk')==='1')localStorage.setItem('h3_android_apk','1');
   nativeReturn=u.searchParams.get('h3nativepush');
-  if(nativeReturn==='granted'||nativeReturn==='denied')localStorage.setItem('h3_native_notifications',nativeReturn);
-  if(u.searchParams.has('h3apk')||u.searchParams.has('h3nativepush')){
+  if(nativeReturn==='granted'||nativeReturn==='denied'){
+    localStorage.setItem('h3_native_notifications',nativeReturn);
+    localStorage.removeItem('h3_native_push_pending');
+  }
+  if(u.searchParams.has('h3apk')||u.searchParams.has('h3nativepush')||u.searchParams.has('h3nativepush_nonce')){
     u.searchParams.delete('h3apk');
     u.searchParams.delete('h3nativepush');
+    u.searchParams.delete('h3nativepush_nonce');
     history.replaceState(history.state,'',u.pathname+(u.search?u.search:'')+u.hash);
   }
 }catch{}
@@ -20,19 +24,10 @@ function nativeGranted(){try{return localStorage.getItem('h3_native_notification
 async function saveSubscription(sub){const json=sub.toJSON();const{error}=await sb.rpc('save_push_subscription',{p_endpoint:json.endpoint,p_p256dh:json.keys?.p256dh||'',p_auth:json.keys?.auth||'',p_user_agent:navigator.userAgent});if(error)throw error}
 function openNativePermission(btn,card){
   try{localStorage.setItem('h3_native_push_pending','1')}catch{}
-  card.querySelector('small').textContent='Potwierdź teraz systemowe zezwolenie Androida.';
+  card.querySelector('small').textContent='Potwierdź systemowe zezwolenie Androida. Po wyborze wrócisz automatycznie do aplikacji.';
   card.hidden=false;
-  let left=false;
-  const vis=()=>{if(document.hidden)left=true};
-  document.addEventListener('visibilitychange',vis,{once:true});
+  btn.disabled=true;
   location.href='halloween3://notifications';
-  setTimeout(()=>{
-    if(!left&&!document.hidden){
-      btn.disabled=false;
-      card.querySelector('small').textContent='Nie udało się otworzyć systemowego zezwolenia. Uruchom najnowszą wersję aplikacji APK.';
-      card.hidden=false;
-    }
-  },1800);
 }
 async function subscribe(btn,card){
   btn.disabled=true;
@@ -95,6 +90,7 @@ async function init(){
     if(sub){
       await saveSubscription(sub);
       try{localStorage.setItem('h3_push_enabled','1');localStorage.removeItem('h3_native_push_pending')}catch{}
+      card.hidden=true;
       return;
     }
     try{localStorage.removeItem('h3_push_enabled')}catch{}
