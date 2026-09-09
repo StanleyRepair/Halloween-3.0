@@ -1,14 +1,19 @@
 (()=>{
 const VAPID_PUBLIC='BJg6Yy6HH6CduNZwTLbtqrqfvjr73AnU-BdLB2kPlRDIS85_W0h_xqiP84lKEqfXC7AM5Vq5DBxmM2d-MvUt3_w';
+const NATIVE_PERMISSION_STATUS_MIN_CODE=10;
 const isAndroid=/Android/i.test(navigator.userAgent);
-let nativeReturn=null;
+let nativeReturn=null,nativeCheckInProgress=false,lastNativeCheck=0,hiddenAt=0;
 try{
   const u=new URL(location.href);
   if(u.searchParams.get('h3apk')==='1')localStorage.setItem('h3_android_apk','1');
+  const appVersion=u.searchParams.get('h3appver'),appCode=u.searchParams.get('h3appcode');
+  if(appVersion)localStorage.setItem('h3_apk_version',appVersion);
+  if(appCode&&/^\d+$/.test(appCode))localStorage.setItem('h3_apk_version_code',appCode);
   nativeReturn=u.searchParams.get('h3nativepush');
   if(nativeReturn==='granted'||nativeReturn==='denied'){
     localStorage.setItem('h3_native_notifications',nativeReturn);
     localStorage.removeItem('h3_native_push_pending');
+    lastNativeCheck=Date.now();
   }
   if(u.searchParams.has('h3apk')||u.searchParams.has('h3nativepush')||u.searchParams.has('h3nativepush_nonce')){
     u.searchParams.delete('h3apk');
@@ -21,6 +26,13 @@ function b64ToU8(base64){const pad='='.repeat((4-base64.length%4)%4),s=(base64+p
 function canPush(){return 'serviceWorker'in navigator&&'PushManager'in window&&'Notification'in window}
 function isAndroidApk(){try{return isAndroid&&localStorage.getItem('h3_android_apk')==='1'}catch{return false}}
 function nativeGranted(){try{return localStorage.getItem('h3_native_notifications')==='granted'}catch{return false}}
+function apkVersionCode(){try{const v=localStorage.getItem('h3_apk_version_code')||'';return /^\d+$/.test(v)?Number(v):0}catch{return 0}}
+function requestNativeStatusCheck(){
+  if(!isAndroidApk()||apkVersionCode()<NATIVE_PERMISSION_STATUS_MIN_CODE||nativeCheckInProgress)return;
+  const now=Date.now();if(now-lastNativeCheck<2500)return;
+  lastNativeCheck=now;nativeCheckInProgress=true;
+  try{location.href='halloween3://notifications?mode=check'}catch{nativeCheckInProgress=false}
+}
 async function saveSubscription(sub){const json=sub.toJSON();const{error}=await sb.rpc('save_push_subscription',{p_endpoint:json.endpoint,p_p256dh:json.keys?.p256dh||'',p_auth:json.keys?.auth||'',p_user_agent:navigator.userAgent});if(error)throw error}
 function openNativePermission(btn,card){
   try{localStorage.setItem('h3_native_push_pending','1')}catch{}
@@ -73,7 +85,7 @@ async function init(){
   if(!canPush())return;
   try{
     if(isAndroidApk()&&!nativeGranted()){
-      if(nativeReturn==='denied')card.querySelector('small').textContent='Android nie zezwolił aplikacji Halloween 3.0 na powiadomienia. Kliknij „Włącz”, aby spróbować ponownie.';
+      if(nativeReturn==='denied')card.querySelector('small').textContent='Powiadomienia systemowe Androida są wyłączone. Kliknij „Włącz”, aby zezwolić ponownie.';
       else card.querySelector('small').textContent='Włącz powiadomienia strony i systemowe zezwolenie Androida.';
       btn.disabled=false;
       card.hidden=false;
@@ -101,4 +113,10 @@ async function init(){
   }
 }
 if(document.readyState==='complete')setTimeout(init,150);else window.addEventListener('load',()=>setTimeout(init,150),{once:true});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){hiddenAt=Date.now();return}
+  const away=hiddenAt?Date.now()-hiddenAt:0;hiddenAt=0;
+  if(away>1200)setTimeout(requestNativeStatusCheck,250);
+});
+window.addEventListener('focus',()=>{if(Date.now()-lastNativeCheck>5000)setTimeout(requestNativeStatusCheck,250)});
 })();
