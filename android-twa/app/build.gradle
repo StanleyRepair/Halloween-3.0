@@ -14,6 +14,10 @@ android {
         versionName '1.0.7'
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     signingConfigs {
         release {
             def keyPath = System.getenv('H3_KEYSTORE_PATH')
