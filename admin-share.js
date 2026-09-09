@@ -30,3 +30,13 @@ mainBtn.addEventListener('click',()=>share('text',mainBtn));
 withTextBtn.addEventListener('click',()=>share('text',withTextBtn));
 linkOnlyBtn.addEventListener('click',()=>share('link',linkOnlyBtn));
 })();
+
+(()=>{
+function loadBugAdmin(){
+  if(document.getElementById('adminBugReportsPanel'))return;
+  if(!document.querySelector('.admin-menu')){setTimeout(loadBugAdmin,120);return}
+  if(!document.querySelector('link[data-admin-bug-reports]')){const l=document.createElement('link');l.rel='stylesheet';l.href='admin-bug-reports.css?v=1';l.dataset.adminBugReports='1';document.head.appendChild(l)}
+  if(!document.querySelector('script[data-admin-bug-reports]')){const s=document.createElement('script');s.src='admin-bug-reports.js?v=1';s.dataset.adminBugReports='1';document.body.appendChild(s)}
+}
+setTimeout(loadBugAdmin,0);
+})();
