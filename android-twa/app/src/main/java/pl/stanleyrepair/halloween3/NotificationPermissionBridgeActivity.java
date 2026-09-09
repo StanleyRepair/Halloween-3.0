@@ -42,6 +42,7 @@ public class NotificationPermissionBridgeActivity extends Activity {
         Uri returnUrl = Uri.parse(
                 "https://stanleyrepair.github.io/Halloween-3.0/?h3apk=1&h3nativepush="
                         + (granted ? "granted" : "denied")
+                        + "&h3nativepush_nonce=" + System.currentTimeMillis()
         );
 
         Intent intent = new Intent(
@@ -50,7 +51,7 @@ public class NotificationPermissionBridgeActivity extends Activity {
         );
         intent.setAction(Intent.ACTION_VIEW);
         intent.setData(returnUrl);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }
