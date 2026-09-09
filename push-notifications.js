@@ -13,16 +13,30 @@ function setCard(text,label='Włącz',disabled=false){if(!card)return;copy.textC
 function closeHelp(){if(help)help.hidden=true}
 function toggleHelp(){if(!help)return;if(help.hidden)showHelp();else closeHelp()}
 function deniedHelp(){
-  if(isAndroid)return `<strong>Jak odblokować powiadomienia</strong><ol><li>Przytrzymaj ikonę <b>Halloween 3.0</b> i wybierz <b>Informacje o aplikacji</b> lub symbol ⓘ.</li><li>Wejdź w <b>Powiadomienia</b> i włącz zezwolenie na powiadomienia.</li><li>Wróć do aplikacji. Stan zostanie sprawdzony automatycznie.</li></ol><small>Nazwy pozycji mogą się lekko różnić zależnie od producenta telefonu i wersji Androida.</small>`;
-  if(isIOS)return `<strong>Jak odblokować powiadomienia</strong><ol><li>Otwórz <b>Ustawienia</b> w iPhonie lub iPadzie.</li><li>Wejdź w <b>Powiadomienia</b>, wybierz <b>Halloween 3.0</b> i włącz <b>Zezwalaj na powiadomienia</b>.</li><li>Wróć do aplikacji. Stan zostanie sprawdzony automatycznie.</li></ol><small>Nazwy pozycji mogą się lekko różnić zależnie od wersji systemu.</small>`;
+  if(isAndroid)return `<strong>Jak odblokować powiadomienia</strong><ol><li>Przytrzymaj ikonę <b>Halloween 3.0</b> i wybierz <b>Informacje o aplikacji</b> lub symbol ⓘ.</li><li>Wejdź w <b>Powiadomienia</b> i upewnij się, że są włączone.</li><li>Jeśli w aplikacji wszystko jest włączone, sprawdź także powiadomienia dla <b>przeglądarki, z której instalowano aplikację</b>. W Androidzie wejdź w <b>Ustawienia → Aplikacje → [Twoja przeglądarka] → Powiadomienia</b> i włącz je.</li><li>Wróć do aplikacji i wybierz <b>Sprawdź ponownie</b>.</li></ol><small>Nazwy pozycji mogą się lekko różnić zależnie od producenta telefonu i wersji Androida.</small>`;
+  if(isIOS)return `<strong>Jak odblokować powiadomienia</strong><ol><li>Otwórz <b>Ustawienia</b> w iPhonie lub iPadzie.</li><li>Wejdź w <b>Powiadomienia</b>, wybierz <b>Halloween 3.0</b> i włącz <b>Zezwalaj na powiadomienia</b>.</li><li>Wróć do aplikacji i wybierz <b>Sprawdź ponownie</b>.</li></ol><small>Nazwy pozycji mogą się lekko różnić zależnie od wersji systemu.</small>`;
   return `<strong>Jak odblokować powiadomienia</strong><ol><li>Otwórz ustawienia powiadomień dla tej aplikacji lub witryny w swoim systemie albo przeglądarce.</li><li>Włącz zezwolenie na powiadomienia.</li><li>Wróć tutaj i wybierz <b>Sprawdź ponownie</b>.</li></ol>`;
 }
 function showHelp(){if(!help)return;help.innerHTML=`${deniedHelp()}<button type="button" class="push-help-check" data-push-recheck>Sprawdź ponownie</button>`;help.hidden=false;help.querySelector('[data-push-recheck]')?.addEventListener('click',()=>refreshState(true))}
 async function showTest(reg){try{await reg.showNotification('Halloween 3.0 🎃',{body:'Powiadomienia są włączone i działają.',icon:'./icons/notification-news.svg?v=1',badge:'./icons/notification-badge.svg?v=1',tag:'h3-push-enabled',renotify:false})}catch(e){console.warn('Test notification failed',e)}}
+async function getPushPermissionState(reg){
+  try{
+    if(!reg?.pushManager?.permissionState)return null;
+    return await reg.pushManager.permissionState({userVisibleOnly:true,applicationServerKey:b64ToU8(VAPID_PUBLIC)});
+  }catch(e){
+    console.warn('Push permission state check failed',e);
+    return null;
+  }
+}
 async function ensureSubscription(showConfirmation=false){
   if(busy)return false;busy=true;btn.disabled=true;
   try{
     const reg=await waitForSW();
+    const pushPermission=await getPushPermissionState(reg);
+    if(pushPermission==='denied'){
+      setCard('Powiadomienia są zablokowane w ustawieniach systemu lub przeglądarki. Kliknij „Napraw”.','Napraw');
+      return false;
+    }
     let sub=await reg.pushManager.getSubscription();
     if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(VAPID_PUBLIC)});
     await saveSubscription(sub);
@@ -73,7 +87,15 @@ async function refreshState(fromUser=false){
     return;
   }
   try{
-    const reg=await waitForSW(5000),sub=await reg.pushManager.getSubscription();
+    const reg=await waitForSW(5000);
+    const pushPermission=await getPushPermissionState(reg);
+    if(pushPermission==='denied'){
+      try{localStorage.removeItem('h3_push_enabled')}catch{}
+      setCard('Powiadomienia są zablokowane w ustawieniach systemu lub przeglądarki. Kliknij „Napraw”.','Napraw');
+      if(fromUser)showHelp();
+      return;
+    }
+    const sub=await reg.pushManager.getSubscription();
     if(sub){
       await saveSubscription(sub);
       try{localStorage.setItem('h3_push_enabled','1')}catch{}
@@ -96,7 +118,7 @@ async function init(){
   card.innerHTML='<div class="push-optin-icon">🔔</div><div class="push-optin-copy"><strong>Włącz powiadomienia</strong><small>Dostaniesz ważne aktualności nawet gdy aplikacja jest zamknięta.</small></div><button type="button" class="push-optin-btn">Włącz</button><div class="push-help" hidden></div>';
   news.querySelector('.section-heading')?.insertAdjacentElement('afterend',card);
   btn=card.querySelector('.push-optin-btn');copy=card.querySelector('.push-optin-copy small');help=card.querySelector('.push-help');
-  btn.addEventListener('click',()=>{if(canPush()&&Notification.permission==='denied')toggleHelp();else requestAndSubscribe()});
+  btn.addEventListener('click',()=>{if(canPush()&&Notification.permission==='denied')toggleHelp();else if(btn.textContent==='Napraw')toggleHelp();else requestAndSubscribe()});
   await refreshState(false);watchPermission();
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>refreshState(false),250)});
   window.addEventListener('focus',()=>setTimeout(()=>refreshState(false),250));
