@@ -7,6 +7,7 @@ let updateMeta=null,updateAvailable=false,updateChecking=false,updateError=false
 const GAME_ID='__creepy_pumpkin__';
 const gameTile={id:GAME_ID,title:'Creepy Pumpkin',icon:'🎃',body:'',image_path:null,children:[],builtin_game:true};
 const UPDATE_META_URL='https://raw.githubusercontent.com/StanleyRepair/Halloween-3.0/main/downloads/android-version.json';
+const NATIVE_UPDATE_MIN_CODE=9;
 const isAndroid=/Android/i.test(navigator.userAgent);
 const esc=v=>{const d=document.createElement('div');d.textContent=String(v??'');return d.innerHTML};
 const imageUrl=path=>`${SUPABASE_URL}/storage/v1/object/public/other-images/${String(path||'').split('/').map(encodeURIComponent).join('/')}`;
@@ -51,7 +52,7 @@ function showUpdateToast(message){
   let toast=document.getElementById('appUpdateToast');
   if(!toast){toast=document.createElement('div');toast.id='appUpdateToast';toast.className='app-update-toast';document.body.appendChild(toast)}
   clearTimeout(toastTimer);toast.textContent=message;toast.classList.add('show');
-  toastTimer=setTimeout(()=>toast.classList.remove('show'),3600);
+  toastTimer=setTimeout(()=>toast.classList.remove('show'),4200);
 }
 async function checkAndroidUpdate(force=false){
   if(!isAndroidApk())return null;
@@ -82,7 +83,15 @@ async function handleUpdateClick(btn){
   if(updateError&&!updateMeta){showUpdateToast('Nie udało się sprawdzić aktualizacji. Sprawdź połączenie z internetem.');btn.disabled=false;return}
   if(!updateAvailable){showUpdateToast(`Masz najnowszą wersję aplikacji ${installed.version||updateMeta?.version||''}.`.trim());btn.disabled=false;return}
   if(!updateMeta?.apkUrl){showUpdateToast('Nie udało się pobrać adresu aktualizacji.');btn.disabled=false;return}
-  showUpdateToast(`Pobieram Halloween 3.0 ${updateMeta.version}. Android poprosi o potwierdzenie instalacji.`);
+
+  if(installed.known&&installed.code>=NATIVE_UPDATE_MIN_CODE){
+    showUpdateToast(`Pobieram Halloween 3.0 ${updateMeta.version}. Po pobraniu instalator Androida otworzy się automatycznie.`);
+    const nativeUrl=`halloween3://update?url=${encodeURIComponent(updateMeta.apkUrl)}&version=${encodeURIComponent(updateMeta.version)}`;
+    try{location.href=nativeUrl}catch{btn.disabled=false;showUpdateToast('Nie udało się uruchomić instalatora aktualizacji.')}
+    return;
+  }
+
+  showUpdateToast(`Pobieram Halloween 3.0 ${updateMeta.version}. Tę jedną aktualizację otwórz po pobraniu ręcznie. Od wersji 1.0.8 instalator będzie uruchamiał się automatycznie.`);
   try{location.href=updateMeta.apkUrl}catch{btn.disabled=false;showUpdateToast('Nie udało się rozpocząć pobierania aktualizacji.')}
 }
 function ensureGameAssets(){if(window.CreepyPumpkinGame)return Promise.resolve();if(gameAssetsPromise)return gameAssetsPromise;gameAssetsPromise=new Promise((resolve,reject)=>{if(!document.querySelector('link[data-creepy-pumpkin]')){const l=document.createElement('link');l.rel='stylesheet';l.href='creepy-pumpkin.css?v=2';l.dataset.creepyPumpkin='1';document.head.appendChild(l)}const s=document.createElement('script');s.src='creepy-pumpkin.js?v=3';s.async=true;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)});return gameAssetsPromise}
