@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - 'android-twa/**'
+      - 'android-twa/app/build.gradle'
       - 'icons/halloween-icon-512.png'
       - '.github/workflows/android-apk.yml'
 
