@@ -15,17 +15,26 @@ public class NotificationPermissionBridgeActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(
-                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                    REQUEST_NOTIFICATIONS
-            );
+        Uri data = getIntent() != null ? getIntent().getData() : null;
+        boolean checkOnly = data != null && "check".equals(data.getQueryParameter("mode"));
+        boolean granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED;
+
+        if (granted) {
+            returnToTwa(true);
             return;
         }
 
-        returnToTwa(true);
+        if (checkOnly) {
+            returnToTwa(false);
+            return;
+        }
+
+        requestPermissions(
+                new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                REQUEST_NOTIFICATIONS
+        );
     }
 
     @Override
