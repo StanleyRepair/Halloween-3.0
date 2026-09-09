@@ -17,8 +17,9 @@ function mount(host){unmount();if(!host)return;
  function drawPumpkin(){ctx.save();ctx.translate(pumpkin.x,pumpkin.y);ctx.rotate(Math.max(-.35,Math.min(.45,pumpkin.vy/550)));ctx.shadowColor='rgba(255,106,0,.8)';ctx.shadowBlur=16;ctx.font='42px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🎃',0,1);ctx.restore();ctx.shadowBlur=0}
  function draw(){drawBackground();for(const p of pipes)drawPipe(p);drawPumpkin();ctx.fillStyle='rgba(0,0,0,.28)';ctx.fillRect(0,0,360,42);ctx.fillStyle='#ff9b42';ctx.font='800 22px Inter,system-ui,sans-serif';ctx.textAlign='center';ctx.fillText(String(score),180,29)}
  canvas.addEventListener('pointerdown',e=>{e.preventDefault();flap()});startBtn.addEventListener('click',e=>{e.preventDefault();start()});draw();
- current={host,stop(){running=false;cancelAnimationFrame(raf)}};
+ current={host,stop(){running=false;cancelAnimationFrame(raf)},toggleFullscreen(){const box=host.closest('.creepy-game-detail');if(!box)return;const active=box.classList.toggle('creepy-game-fullscreen-box');document.body.classList.toggle('creepy-game-fullscreen',active);const btn=box.querySelector('.creepy-fullscreen-button');if(btn){btn.textContent=active?'✕':'⛶';btn.setAttribute('aria-label',active?'Wyłącz pełny ekran':'Włącz pełny ekran');btn.title=active?'Wyłącz pełny ekran':'Pełny ekran'}},exitFullscreen(){const box=host.closest('.creepy-game-detail');box?.classList.remove('creepy-game-fullscreen-box');document.body.classList.remove('creepy-game-fullscreen')}};
 }
-function unmount(){if(current){current.stop();current=null}}
-window.CreepyPumpkinGame={mount,unmount};
+function unmount(){if(current){current.exitFullscreen?.();current.stop();current=null}}
+function toggleFullscreen(){current?.toggleFullscreen?.()}
+window.CreepyPumpkinGame={mount,unmount,toggleFullscreen};
 })();
