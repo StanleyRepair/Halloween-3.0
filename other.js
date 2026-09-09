@@ -15,13 +15,24 @@ function captureApkContext(){
   if(!isAndroid)return;
   try{
     const u=new URL(location.href);
-    if(u.searchParams.get('h3apk')==='1')sessionStorage.setItem('h3_apk_session','1');
+    const apkParam=u.searchParams.get('h3apk')==='1';
     const v=u.searchParams.get('h3appver'),c=u.searchParams.get('h3appcode');
-    if(v)localStorage.setItem('h3_apk_version',v);
-    if(c&&/^\d+$/.test(c))localStorage.setItem('h3_apk_version_code',c);
+    if(apkParam){
+      sessionStorage.setItem('h3_apk_session','1');
+      localStorage.setItem('h3_android_apk','1');
+    }
+    if(v){localStorage.setItem('h3_apk_version',v);localStorage.setItem('h3_android_apk','1')}
+    if(c&&/^\d+$/.test(c)){localStorage.setItem('h3_apk_version_code',c);localStorage.setItem('h3_android_apk','1')}
   }catch{}
 }
-function isAndroidApk(){try{return isAndroid&&sessionStorage.getItem('h3_apk_session')==='1'}catch{return false}}
+function isAndroidApk(){
+  if(!isAndroid)return false;
+  try{
+    return sessionStorage.getItem('h3_apk_session')==='1'
+      || localStorage.getItem('h3_android_apk')==='1'
+      || /^\d+$/.test(localStorage.getItem('h3_apk_version_code')||'');
+  }catch{return false}
+}
 function installedVersion(){
   try{
     const version=localStorage.getItem('h3_apk_version')||'';
