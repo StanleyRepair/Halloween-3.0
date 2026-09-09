@@ -1,17 +1,18 @@
 (()=>{
 const old=document.getElementById('photoViewer');if(old)old.remove();
-const viewer=document.createElement('div');viewer.id='photoViewerV2';viewer.hidden=true;viewer.innerHTML='<div class="photo-viewer-v2-top"><button class="photo-viewer-v2-close" type="button" aria-label="Zamknij">×</button><div class="photo-viewer-v2-count"></div></div><div class="photo-viewer-v2-stage"><img alt="Zdjęcie"></div><button class="photo-viewer-v2-arrow photo-viewer-v2-prev" type="button" aria-label="Poprzednie zdjęcie">‹</button><button class="photo-viewer-v2-arrow photo-viewer-v2-next" type="button" aria-label="Następne zdjęcie">›</button><div class="photo-viewer-v2-help">Przesuń palcem, aby zmienić zdjęcie. Zbliż dwoma palcami.</div>';
+const viewer=document.createElement('div');viewer.id='photoViewerV2';viewer.hidden=true;viewer.innerHTML='<div class="photo-viewer-v2-top"><button class="photo-viewer-v2-close" type="button" aria-label="Zamknij">×</button><div class="photo-viewer-v2-count"></div></div><div class="photo-viewer-v2-stage"><img alt="Zdjęcie"></div><button class="photo-viewer-v2-arrow photo-viewer-v2-prev" type="button" aria-label="Poprzednie zdjęcie">‹</button><button class="photo-viewer-v2-arrow photo-viewer-v2-next" type="button" aria-label="Następne zdjęcie">›</button><div class="photo-viewer-v2-reaction"></div><div class="photo-viewer-v2-help">Przesuń palcem, aby zmienić zdjęcie. Zbliż dwoma palcami.</div>';
 document.body.appendChild(viewer);
-const stage=viewer.querySelector('.photo-viewer-v2-stage'),img=viewer.querySelector('img'),count=viewer.querySelector('.photo-viewer-v2-count'),help=viewer.querySelector('.photo-viewer-v2-help');
+const stage=viewer.querySelector('.photo-viewer-v2-stage'),img=viewer.querySelector('img'),count=viewer.querySelector('.photo-viewer-v2-count'),help=viewer.querySelector('.photo-viewer-v2-help'),reactionHost=viewer.querySelector('.photo-viewer-v2-reaction');
 let photos=[],index=0,scale=1,tx=0,ty=0,startScale=1,startDist=0,startX=0,startY=0,startTx=0,startTy=0,lastTap=0,touchMode='none';
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function apply(){img.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${scale})`}
 function reset(){scale=1;tx=0;ty=0;touchMode='none';apply()}
 function currentPhoto(){return photos[index]}
-function update(){const p=currentPhoto();if(!p)return;img.src=p.src;img.alt=p.alt||'Zdjęcie';viewer.dataset.photoId=p.dataset.photoId||'';count.textContent=`${index+1} / ${photos.length}`;reset()}
+function syncReaction(){reactionHost.innerHTML='';const p=currentPhoto();if(!p)return;const source=p.closest('.gallery-photo-item')?.querySelector('.photo-reaction-ui');if(!source)return;const clone=source.cloneNode(true);clone.classList.remove('open');const menu=clone.querySelector('.photo-reactions');if(menu)menu.hidden=true;const toggle=clone.querySelector('.photo-reaction-toggle');if(toggle)toggle.setAttribute('aria-expanded','false');reactionHost.appendChild(clone)}
+function update(){const p=currentPhoto();if(!p)return;img.src=p.src;img.alt=p.alt||'Zdjęcie';viewer.dataset.photoId=p.dataset.photoId||'';count.textContent=`${index+1} / ${photos.length}`;reset();syncReaction()}
 function collect(start){const grid=start.closest('.gallery-folder-grid');const list=grid?[...grid.querySelectorAll('.gallery-photo-item>img')]:[...document.querySelectorAll('#photoShowcase .gallery-photo-item>img')];photos=list.length?list:[start];index=Math.max(0,photos.indexOf(start))}
 function open(start){collect(start);update();viewer.hidden=false;document.body.style.overflow='hidden';help.classList.remove('fade');setTimeout(()=>help.classList.add('fade'),2600)}
-function close(){viewer.hidden=true;img.removeAttribute('src');document.body.style.overflow='';photos=[];reset()}
+function close(){viewer.hidden=true;img.removeAttribute('src');document.body.style.overflow='';photos=[];reactionHost.innerHTML='';reset()}
 function change(dir){if(!photos.length)return;index=(index+dir+photos.length)%photos.length;update()}
 function distance(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
 function touchCenter(a,b){return{x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2}}
