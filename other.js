@@ -7,8 +7,6 @@ let updateMeta=null,updateAvailable=false,updateChecking=false,updateError=false
 const GAME_ID='__creepy_pumpkin__';
 const gameTile={id:GAME_ID,title:'Creepy Pumpkin',icon:'🎃',body:'',image_path:null,children:[],builtin_game:true};
 const UPDATE_META_URL='https://raw.githubusercontent.com/StanleyRepair/Halloween-3.0/main/downloads/android-version.json';
-const LEGACY_APK_VERSION='1.0.6';
-const LEGACY_APK_CODE=7;
 const isAndroid=/Android/i.test(navigator.userAgent);
 const esc=v=>{const d=document.createElement('div');d.textContent=String(v??'');return d.innerHTML};
 const imageUrl=path=>`${SUPABASE_URL}/storage/v1/object/public/other-images/${String(path||'').split('/').map(encodeURIComponent).join('/')}`;
@@ -20,15 +18,16 @@ function captureApkContext(){
     const v=u.searchParams.get('h3appver'),c=u.searchParams.get('h3appcode');
     if(v)localStorage.setItem('h3_apk_version',v);
     if(c&&/^\d+$/.test(c))localStorage.setItem('h3_apk_version_code',c);
-    if(sessionStorage.getItem('h3_apk_session')==='1'){
-      if(!localStorage.getItem('h3_apk_version'))localStorage.setItem('h3_apk_version',LEGACY_APK_VERSION);
-      if(!localStorage.getItem('h3_apk_version_code'))localStorage.setItem('h3_apk_version_code',String(LEGACY_APK_CODE));
-    }
   }catch{}
 }
 function isAndroidApk(){try{return isAndroid&&sessionStorage.getItem('h3_apk_session')==='1'}catch{return false}}
 function installedVersion(){
-  try{return {version:localStorage.getItem('h3_apk_version')||LEGACY_APK_VERSION,code:Number(localStorage.getItem('h3_apk_version_code')||LEGACY_APK_CODE)||LEGACY_APK_CODE}}catch{return {version:LEGACY_APK_VERSION,code:LEGACY_APK_CODE}}
+  try{
+    const version=localStorage.getItem('h3_apk_version')||'';
+    const rawCode=localStorage.getItem('h3_apk_version_code')||'';
+    const code=/^\d+$/.test(rawCode)?Number(rawCode):0;
+    return {version,code,known:!!version&&code>0};
+  }catch{return {version:'',code:0,known:false}}
 }
 function compareVersions(a,b){
   const pa=String(a||'0').split('.').map(n=>Number(n)||0),pb=String(b||'0').split('.').map(n=>Number(n)||0),len=Math.max(pa.length,pb.length);
@@ -41,10 +40,10 @@ function updateNavDot(){otherNav?.classList.toggle('has-app-update',isAndroidApk
 function updateCardMarkup(){
   if(!isAndroidApk())return '';
   const installed=installedVersion();
-  let status=`Zainstalowana wersja ${installed.version}`;
+  let status=installed.known?`Zainstalowana wersja ${installed.version}`:'Zainstalowana starsza wersja APK';
   if(updateChecking)status='Sprawdzanie dostępnej wersji...';
   else if(updateAvailable&&updateMeta?.version)status=`Dostępna nowa wersja ${updateMeta.version}`;
-  else if(updateError&&!updateMeta)status=`Wersja ${installed.version} • nie udało się sprawdzić aktualizacji`;
+  else if(updateError&&!updateMeta)status=installed.known?`Wersja ${installed.version} • nie udało się sprawdzić aktualizacji`:'Nie udało się sprawdzić aktualizacji';
   const label=updateAvailable?'AKTUALIZUJ':'SPRAWDŹ';
   return `<div class="app-update-card${updateAvailable?' is-available':''}"><span class="app-update-dot" aria-hidden="true"></span><span class="app-update-icon">↻</span><span class="app-update-copy"><strong>Aktualizacja aplikacji</strong><small>${esc(status)}</small></span><button type="button" class="app-update-button" data-app-update ${updateChecking?'disabled':''}>${label}</button></div>`;
 }
@@ -65,7 +64,8 @@ async function checkAndroidUpdate(force=false){
     if(!meta||!meta.version||!meta.apkUrl)throw new Error('Invalid update metadata');
     updateMeta=meta;
     const installed=installedVersion(),latestCode=Number(meta.versionCode)||0;
-    updateAvailable=latestCode&&installed.code?latestCode>installed.code:compareVersions(meta.version,installed.version)>0;
+    if(!installed.known)updateAvailable=true;
+    else updateAvailable=latestCode&&installed.code?latestCode>installed.code:compareVersions(meta.version,installed.version)>0;
     updateError=false;
   }catch(e){console.warn('Android update check failed',e);updateError=true}
   finally{
@@ -80,10 +80,10 @@ async function handleUpdateClick(btn){
   await checkAndroidUpdate(true);
   const installed=installedVersion();
   if(updateError&&!updateMeta){showUpdateToast('Nie udało się sprawdzić aktualizacji. Sprawdź połączenie z internetem.');btn.disabled=false;return}
-  if(!updateAvailable){showUpdateToast(`Masz najnowszą wersję aplikacji ${installed.version}.`);btn.disabled=false;return}
+  if(!updateAvailable){showUpdateToast(`Masz najnowszą wersję aplikacji ${installed.version||updateMeta?.version||''}.`.trim());btn.disabled=false;return}
   if(!updateMeta?.apkUrl){showUpdateToast('Nie udało się pobrać adresu aktualizacji.');btn.disabled=false;return}
-  showUpdateToast(`Pobieram Halloween 3.0 ${updateMeta.version}. Po pobraniu Android poprosi o potwierdzenie instalacji.`);
-  setTimeout(()=>{const w=window.open(updateMeta.apkUrl,'_blank','noopener');if(!w)location.href=updateMeta.apkUrl;btn.disabled=false},180);
+  showUpdateToast(`Pobieram Halloween 3.0 ${updateMeta.version}. Android poprosi o potwierdzenie instalacji.`);
+  try{location.href=updateMeta.apkUrl}catch{btn.disabled=false;showUpdateToast('Nie udało się rozpocząć pobierania aktualizacji.')}
 }
 function ensureGameAssets(){if(window.CreepyPumpkinGame)return Promise.resolve();if(gameAssetsPromise)return gameAssetsPromise;gameAssetsPromise=new Promise((resolve,reject)=>{if(!document.querySelector('link[data-creepy-pumpkin]')){const l=document.createElement('link');l.rel='stylesheet';l.href='creepy-pumpkin.css?v=2';l.dataset.creepyPumpkin='1';document.head.appendChild(l)}const s=document.createElement('script');s.src='creepy-pumpkin.js?v=3';s.async=true;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)});return gameAssetsPromise}
 function renderList(){window.CreepyPumpkinGame?.unmount?.();navStack=[];detail.dataset.currentId='';detail.hidden=true;list.hidden=false;const tiles=rootTiles().map(t=>tileMarkup(t)).join('');list.innerHTML=updateCardMarkup()+(tiles||'<div class="other-soon">JUŻ WKRÓTCE.. 🔧</div>')}
