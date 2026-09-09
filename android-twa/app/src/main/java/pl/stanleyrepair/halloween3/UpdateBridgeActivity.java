@@ -187,7 +187,10 @@ public class UpdateBridgeActivity extends Activity {
             install.setDataAndType(contentUri, "application/vnd.android.package-archive");
             install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(install);
-            finish();
+
+            // The installer is now in front. Remove the whole Halloween task so that
+            // Android/Chrome cannot resume the old TWA after the package is replaced.
+            finishAndRemoveTask();
         } catch (Exception e) {
             fail("Plik został pobrany, ale nie udało się otworzyć instalatora Androida.");
         }
