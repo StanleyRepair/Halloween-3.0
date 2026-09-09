@@ -10,12 +10,8 @@ android {
         applicationId 'pl.stanleyrepair.halloween3'
         minSdk 26
         targetSdk 36
-        versionCode 7
-        versionName '1.0.6'
-        manifestPlaceholders = [
-            appVersionName: versionName,
-            appVersionCode: versionCode.toString()
-        ]
+        versionCode 8
+        versionName '1.0.7'
     }
 
     signingConfigs {
