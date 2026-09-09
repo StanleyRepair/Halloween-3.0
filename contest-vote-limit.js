@@ -1,0 +1,12 @@
+(()=>{
+const grid=document.getElementById('contestGrid'),counter=document.getElementById('voteCounter'),save=document.getElementById('saveVotes'),help=document.getElementById('voteHelp');if(!grid||!counter||!save)return;
+let maxVotes=3,selected=new Set(),syncing=false;
+async function refreshLimit(){try{const{data,error}=await sb.rpc('get_contest_state');if(error)throw error;const s=Array.isArray(data)?data[0]:data;maxVotes=Math.max(1,Number(s?.max_votes||3));syncFromDom();updateUi();if(help&&!save.hidden)help.textContent=`Dotknij zdjęcia, aby oddać lub cofnąć głos. Możesz wybrać maksymalnie ${maxVotes}.`}catch(e){console.warn(e)}}
+function syncFromDom(){selected=new Set([...grid.querySelectorAll('.candidate-card.selected[data-entry]')].map(x=>x.dataset.entry))}
+function updateUi(){counter.textContent=`${selected.size} / ${maxVotes}`;grid.querySelectorAll('.candidate-card[data-entry]').forEach(c=>c.classList.toggle('selected',selected.has(c.dataset.entry)))}
+grid.addEventListener('click',e=>{const card=e.target.closest('.candidate-card[data-entry]');if(!card||save.hidden)return;e.preventDefault();e.stopImmediatePropagation();const id=card.dataset.entry;if(selected.has(id))selected.delete(id);else if(selected.size<maxVotes)selected.add(id);else{const m=document.getElementById('contestMessage');if(m){m.textContent=`Możesz wybrać maksymalnie ${maxVotes} przebrania.`;m.className='contest-message error';m.hidden=false;setTimeout(()=>m.hidden=true,3500)}return}updateUi()},true);
+save.addEventListener('click',async e=>{if(save.hidden)return;e.preventDefault();e.stopImmediatePropagation();save.disabled=true;try{const{error}=await sb.rpc('set_my_votes',{p_voter_token:localStorage.getItem('h3_voter_device'),p_entry_ids:[...selected]});if(error)throw error;const m=document.getElementById('contestMessage');if(m){m.textContent='Głosy zapisane ✓';m.className='contest-message';m.hidden=false;setTimeout(()=>m.hidden=true,3000)}}catch(err){const m=document.getElementById('contestMessage');if(m){m.textContent=err.message||'Nie udało się zapisać głosów.';m.className='contest-message error';m.hidden=false}}finally{save.disabled=false}},true);
+new MutationObserver(()=>{if(syncing)return;syncing=true;syncFromDom();updateUi();syncing=false}).observe(grid,{childList:true,subtree:true});
+document.querySelector('.nav-item[data-tab="contest"]')?.addEventListener('click',()=>setTimeout(refreshLimit,150));
+setTimeout(refreshLimit,300);
+})();
