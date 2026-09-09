@@ -1,5 +1,5 @@
 {
-  "id": "./",
+  "id": "https://stanleyrepair.github.io/Halloween-3.0/",
   "name": "Halloween 3.0",
   "short_name": "Halloween 3.0",
   "description": "Halloween 3.0 — aplikacja imprezy przebieranej.",
@@ -14,9 +14,17 @@
     "client_mode": "navigate-existing"
   },
   "related_applications": [
-    {"platform":"webapp","url":"./manifest.webmanifest"},
-    {"platform":"webapp","url":"./manifest.webmanifest?v=8"},
-    {"platform":"webapp","url":"./manifest.webmanifest?v=9"}
+    {
+      "platform": "webapp",
+      "url": "https://stanleyrepair.github.io/Halloween-3.0/manifest.webmanifest",
+      "id": "https://stanleyrepair.github.io/Halloween-3.0/"
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+halloween3",
+      "url": "./?h3protocol=%s"
+    }
   ],
   "icons": [
     {"src":"icons/halloween-icon-192.png?v=7","sizes":"192x192","type":"image/png","purpose":"any"},
