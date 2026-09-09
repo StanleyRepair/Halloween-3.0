@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">Halloween 3.0</string>
+    <string name="provider_authority">pl.stanleyrepair.halloween3.fileprovider</string>
+    <string name="asset_statements">
+        [{
+            \"relation\": [\"delegate_permission/common.handle_all_urls\"],
+            \"target\": {
+                \"namespace\": \"web\",
+                \"site\": \"https://stanleyrepair.github.io\"
+            }
+        }]
+    </string>
 </resources>
