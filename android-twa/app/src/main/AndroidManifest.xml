@@ -46,7 +46,7 @@
 
             <meta-data
                 android:name="android.support.customtabs.trusted.DEFAULT_URL"
-                android:value="https://stanleyrepair.github.io/Halloween-3.0/?h3apk=1" />
+                android:value="https://stanleyrepair.github.io/Halloween-3.0/?h3apk=1&amp;h3appver=${appVersionName}&amp;h3appcode=${appVersionCode}" />
 
             <meta-data
                 android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
