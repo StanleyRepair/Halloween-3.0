@@ -1,4 +1,22 @@
 (()=>{
+const notice=document.getElementById('notice');if(!notice)return;
+let toastTimer=null,hideTimer=null;
+window.msg=function(text,error=false){
+  clearTimeout(toastTimer);clearTimeout(hideTimer);
+  notice.textContent=String(text??'');
+  notice.className='notice admin-toast'+(error?' error':'');
+  notice.setAttribute('role',error?'alert':'status');
+  notice.setAttribute('aria-live',error?'assertive':'polite');
+  notice.hidden=false;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>notice.classList.add('show')));
+  toastTimer=setTimeout(()=>{
+    notice.classList.remove('show');
+    hideTimer=setTimeout(()=>{if(!notice.classList.contains('show'))notice.hidden=true},260);
+  },4300);
+};
+})();
+
+(()=>{
 const dashboard=document.getElementById('dashboard'),identity=document.getElementById('identity');if(!dashboard||!identity||document.getElementById('shareAppButton'))return;
 const wrap=document.createElement('div');wrap.className='admin-share-strip';wrap.innerHTML='<button id="shareAppButton" class="secondary admin-share-app" type="button">📤 Udostępnij aplikację</button><div class="admin-share-caption">Wybierz sposób udostępniania</div><div class="admin-share-options"><button id="shareAppWithText" class="secondary admin-share-option" type="button">📝 Z opisem</button><button id="shareAppLinkOnly" class="secondary admin-share-option" type="button">🔗 Sam link</button></div>';
 identity.insertAdjacentElement('afterend',wrap);
