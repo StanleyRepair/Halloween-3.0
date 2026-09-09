@@ -22,7 +22,7 @@
   ],
   "protocol_handlers": [
     {
-      "protocol": "web+halloween3",
+      "protocol": "web+halloween",
       "url": "./?h3protocol=%s"
     }
   ],
