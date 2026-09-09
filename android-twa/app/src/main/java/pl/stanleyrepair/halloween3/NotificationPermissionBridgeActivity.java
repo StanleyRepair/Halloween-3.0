@@ -40,15 +40,12 @@ public class NotificationPermissionBridgeActivity extends Activity {
 
     private void returnToTwa(boolean granted) {
         Uri returnUrl = Uri.parse(
-                "https://stanleyrepair.github.io/Halloween-3.0/?h3apk=1&h3nativepush="
+                "https://stanleyrepair.github.io/Halloween-3.0/?h3nativepush="
                         + (granted ? "granted" : "denied")
                         + "&h3nativepush_nonce=" + System.currentTimeMillis()
         );
 
-        Intent intent = new Intent(
-                this,
-                com.google.androidbrowserhelper.trusted.LauncherActivity.class
-        );
+        Intent intent = new Intent(this, H3LauncherActivity.class);
         intent.setAction(Intent.ACTION_VIEW);
         intent.setData(returnUrl);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
