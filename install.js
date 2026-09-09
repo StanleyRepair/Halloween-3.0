@@ -1,0 +1,19 @@
+(()=>{
+const ua=navigator.userAgent||'';
+const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isChrome=/Chrome\/\d+/i.test(ua)&&!/EdgA|EdgiOS|OPR|SamsungBrowser|FBAN|FBAV|FB_IAB|Messenger|Instagram/i.test(ua);
+const isAndroid=/Android/i.test(ua);
+const installCard=document.getElementById('chromeInstallCard'),browserCard=document.getElementById('openChromeCard'),installedCard=document.getElementById('installedCard'),installBtn=document.getElementById('installNowButton'),chromeBtn=document.getElementById('openChromeButton'),status=document.getElementById('installStatus');
+let deferredPrompt=null,waiters=[];
+function show(el){[installCard,browserCard,installedCard].forEach(x=>x.hidden=x!==el)}
+function resolvePrompt(){waiters.splice(0).forEach(r=>r())}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;resolvePrompt();if(isChrome&&!standalone)show(installCard)});
+window.addEventListener('appinstalled',()=>{deferredPrompt=null;show(installedCard);window.H3Analytics?.track?.('install_landing_installed',{source:'install_page'})});
+async function waitForPrompt(ms=3000){if(deferredPrompt)return true;await new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;resolve()};waiters.push(finish);setTimeout(finish,ms)});return !!deferredPrompt}
+async function install(){installBtn.disabled=true;const old=installBtn.textContent;installBtn.textContent='URUCHAMIANIE INSTALATORA…';status.textContent='Przygotowuję instalację…';window.H3Analytics?.track?.('install_landing_click',{browser:'chrome'});try{const ready=await waitForPrompt();if(!ready){status.textContent='Chrome nie udostępnił instalatora. Możliwe, że aplikacja jest już zainstalowana. Otwórz menu ⋮ i wybierz „Zainstaluj aplikację”.';installBtn.textContent='SPRÓBUJ PONOWNIE';return}const prompt=deferredPrompt;deferredPrompt=null;await prompt.prompt();const result=await prompt.userChoice;if(result?.outcome==='accepted'){status.textContent='Instalowanie aplikacji…';installBtn.textContent='INSTALOWANIE…'}else{status.textContent='Instalacja została anulowana.';installBtn.textContent='ZAINSTALUJ APLIKACJĘ'}}catch(e){console.warn(e);status.textContent='Nie udało się uruchomić instalatora Chrome.';installBtn.textContent=old}finally{installBtn.disabled=false}}
+function openChrome(){window.H3Analytics?.track?.('install_open_chrome_click',{source:/FBAN|FBAV|FB_IAB|Messenger/i.test(ua)?'messenger':'other_browser'});if(isAndroid){const target=location.host+location.pathname+location.search;location.href=`intent://${target}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(location.href)};end`;return}navigator.clipboard?.writeText(location.href).catch(()=>{});chromeBtn.textContent='LINK SKOPIOWANY';setTimeout(()=>chromeBtn.textContent='OTWÓRZ W CHROME',1800)}
+installBtn?.addEventListener('click',install);chromeBtn?.addEventListener('click',openChrome);
+if(standalone){show(installedCard);return}
+if(isChrome)show(installCard);else show(browserCard);
+window.H3Analytics?.track?.('install_landing_open',{browser:isChrome?'chrome':'other',android:isAndroid});
+})();
