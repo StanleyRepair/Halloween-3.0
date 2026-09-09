@@ -1,58 +1,21 @@
 (()=>{
 const ua=navigator.userAgent||'';
-const isAndroid=/Android/i.test(ua);
-const isIOS=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const META_URL='https://raw.githubusercontent.com/StanleyRepair/Halloween-3.0/main/downloads/android-version.json';
-const androidPanel=document.getElementById('androidInstall');
-const iosPanel=document.getElementById('iosInstall');
-const androidDownload=document.getElementById('androidDownload');
-const androidVersion=document.getElementById('androidVersion');
-const iosButton=document.getElementById('iosInstallButton');
-const iosInstructions=document.getElementById('iosInstructions');
-const switcher=document.getElementById('platformSwitch');
-const title=document.getElementById('installTitle');
-const intro=document.getElementById('installIntro');
-let apkMeta=null;
-function showPlatform(name){
-  const android=name==='android';
-  androidPanel.hidden=!android;
-  iosPanel.hidden=android;
-  title.textContent=android?'Pobierz Halloween 3.0':'Zainstaluj Halloween 3.0';
-  intro.textContent=android?'Pobierz najnowszą wersję aplikacji na Androida.':'Dodaj aplikację do ekranu początkowego iPhone’a lub iPada.';
-  switcher.hidden=false;
-  switcher.innerHTML=android?'Masz iPhone’a? <button type="button" data-platform="ios">Instalacja na iOS</button>':'Masz Androida? <button type="button" data-platform="android">Pobierz APK</button>';
-  window.H3Analytics?.track?.('install_platform_view',{platform:name,detected:isAndroid?'android':isIOS?'ios':'other'});
-}
-async function loadAndroidMeta(){
-  try{
-    const r=await fetch(`${META_URL}?install=${Date.now()}`,{cache:'no-store'});
-    if(!r.ok)throw new Error(`HTTP ${r.status}`);
-    const m=await r.json();
-    if(!m?.version||!m?.apkUrl)throw new Error('Invalid metadata');
-    apkMeta=m;
-    androidDownload.href=m.apkUrl;
-    androidVersion.textContent=`Najnowsza wersja: ${m.version}`;
-  }catch(e){
-    console.warn('APK metadata failed',e);
-    androidDownload.removeAttribute('href');
-    androidVersion.textContent='Nie udało się sprawdzić najnowszej wersji. Odśwież stronę.';
-  }
-}
-androidDownload?.addEventListener('click',e=>{
-  if(!apkMeta?.apkUrl){e.preventDefault();loadAndroidMeta();return}
-  window.H3Analytics?.track?.('install_android_apk_click',{version:apkMeta.version||null});
-});
-iosButton?.addEventListener('click',()=>{
-  iosInstructions.hidden=false;
-  iosButton.textContent='INSTRUKCJA INSTALACJI';
-  window.H3Analytics?.track?.('install_ios_instructions',{standalone});
-});
-switcher?.addEventListener('click',e=>{const b=e.target.closest('[data-platform]');if(b)showPlatform(b.dataset.platform)});
-loadAndroidMeta();
-if(standalone&&isIOS){showPlatform('ios');intro.textContent='Halloween 3.0 jest już uruchomione jako aplikacja.';iosButton.textContent='APLIKACJA JEST ZAINSTALOWANA';iosButton.disabled=true}
-else if(isAndroid)showPlatform('android');
-else if(isIOS)showPlatform('ios');
-else{showPlatform('android');intro.textContent='Wybierz system telefonu, na którym chcesz zainstalować aplikację.'}
-window.H3Analytics?.track?.('install_landing_open',{platform:isAndroid?'android':isIOS?'ios':'other',standalone});
+const isChrome=/Chrome\/\d+/i.test(ua)&&!/EdgA|EdgiOS|OPR|SamsungBrowser|FBAN|FBAV|FB_IAB|Messenger|Instagram/i.test(ua);
+const isAndroid=/Android/i.test(ua);
+const installCard=document.getElementById('chromeInstallCard'),browserCard=document.getElementById('openChromeCard'),installedCard=document.getElementById('installedCard'),installBtn=document.getElementById('installNowButton'),chromeBtn=document.getElementById('openChromeButton'),fallbackBtn=document.getElementById('showInstallInstead'),status=document.getElementById('installStatus'),installedTitle=document.getElementById('installedTitle'),installedText=document.getElementById('installedText'),installedStatus=document.getElementById('installedStatus');
+let deferredPrompt=null,waiters=[];
+function show(el){[installCard,browserCard,installedCard].forEach(x=>x.hidden=x!==el)}
+function setInstalledMarker(){try{localStorage.setItem('h3_install_confirmed','1')}catch{}}
+function hasInstalledMarker(){try{return localStorage.getItem('h3_install_confirmed')==='1'}catch{return false}}
+function showInstalled(certain=true){installedTitle.textContent=certain?'Aplikacja jest zainstalowana':'Aplikacja była instalowana na tym urządzeniu';installedText.textContent='Uruchom Halloween 3.0 z jej ikony na ekranie głównym.';installedStatus.textContent=certain?'Instalacja została wykryta.':'Jeśli aplikacja została później usunięta, wybierz poniżej ponowną instalację.';show(installedCard)}
+function resolvePrompt(){waiters.splice(0).forEach(r=>r())}
+async function isInstalled(){if(standalone)return true;try{if(typeof navigator.getInstalledRelatedApps==='function'){const apps=await navigator.getInstalledRelatedApps();if(Array.isArray(apps)&&apps.some(a=>a.platform==='webapp'))return true}}catch(e){console.warn('Installed app detection failed',e)}return false}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;resolvePrompt();if(isChrome&&!standalone)show(installCard)});
+window.addEventListener('appinstalled',()=>{deferredPrompt=null;setInstalledMarker();setTimeout(()=>showInstalled(true),500);window.H3Analytics?.track?.('install_landing_installed',{source:'install_page'})});
+async function waitForPrompt(ms=3200){if(deferredPrompt)return true;await new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;resolve()};waiters.push(finish);setTimeout(finish,ms)});return !!deferredPrompt}
+async function install(){installBtn.disabled=true;installBtn.textContent='URUCHAMIANIE INSTALATORA…';status.textContent='Przygotowuję instalację…';window.H3Analytics?.track?.('install_landing_click',{browser:'chrome'});try{if(await isInstalled()){setInstalledMarker();showInstalled(true);return}const ready=await waitForPrompt();if(!ready){if(await isInstalled()){setInstalledMarker();showInstalled(true);return}installBtn.textContent='SPRAWDŹ PONOWNIE';status.textContent='Chrome nie udostępnił automatycznego instalatora. Otwórz menu ⋮ i wybierz „Zainstaluj aplikację”.';return}const prompt=deferredPrompt;deferredPrompt=null;await prompt.prompt();const result=await prompt.userChoice;if(result?.outcome==='accepted'){status.textContent='Instalowanie aplikacji…';installBtn.textContent='INSTALOWANIE…';setInstalledMarker();setTimeout(()=>showInstalled(true),900)}else{status.textContent='Instalacja została anulowana.';installBtn.textContent='ZAINSTALUJ APLIKACJĘ'}}catch(e){console.warn(e);status.textContent='Nie udało się uruchomić instalatora Chrome. Użyj menu ⋮ i opcji „Zainstaluj aplikację”.';installBtn.textContent='SPRAWDŹ PONOWNIE'}finally{installBtn.disabled=false}}
+function openChrome(){window.H3Analytics?.track?.('install_open_chrome_click',{source:/FBAN|FBAV|FB_IAB|Messenger/i.test(ua)?'messenger':'other_browser'});if(isAndroid){const target=location.host+location.pathname+location.search;location.href=`intent://${target}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(location.href)};end`;return}navigator.clipboard?.writeText(location.href).catch(()=>{});chromeBtn.textContent='LINK SKOPIOWANY';setTimeout(()=>chromeBtn.textContent='OTWÓRZ W CHROME',1800)}
+installBtn?.addEventListener('click',install);chromeBtn?.addEventListener('click',openChrome);fallbackBtn?.addEventListener('click',()=>{try{localStorage.removeItem('h3_install_confirmed')}catch{}show(installCard);installBtn.textContent='ZAINSTALUJ APLIKACJĘ';status.textContent='Kliknij instalację. Jeśli Chrome nie pokaże okna, użyj menu ⋮ i opcji „Zainstaluj aplikację”.'});
+(async()=>{if(await isInstalled()){setInstalledMarker();showInstalled(true);return}if(isChrome){if(hasInstalledMarker())showInstalled(false);else show(installCard)}else show(browserCard)})();
 })();
