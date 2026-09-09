@@ -11,42 +11,38 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=Metal+Mania&display=swap&subset=latin-ext" rel="stylesheet">
-<link rel="stylesheet" href="../install.css?v=3">
+<link rel="stylesheet" href="../install.css?v=4">
 </head>
 <body>
 <div class="install-fog install-fog-a"></div><div class="install-fog install-fog-b"></div>
 <main class="install-shell">
 <img class="install-logo" src="../images/napis_halloween_transparent.png" alt="Halloween 3.0">
-<section id="chromeInstallCard" class="install-card" hidden>
+<section class="install-card">
 <img class="install-app-icon" src="../icons/halloween-icon-192.png?v=7" alt="Ikona Halloween 3.0">
 <div class="install-kicker">HALLOWEEN 3.0</div>
-<h1>Zainstalować aplikację?</h1>
-<p>Dodaj Halloween 3.0 do telefonu i uruchamiaj jak zwykłą aplikację.</p>
-<button id="installNowButton" class="install-primary" type="button">ZAINSTALUJ APLIKACJĘ</button>
-<div id="installStatus" class="install-status">Instalacja zajmuje tylko chwilę.</div>
-</section>
-<section id="openChromeCard" class="install-card install-card-browser" hidden>
-<div class="browser-mark">🌐</div>
-<div class="install-kicker">OTWÓRZ W CHROME</div>
-<h1>Ta strona służy do instalacji aplikacji</h1>
-<p>Otwórz ten link w Google Chrome, aby zainstalować Halloween 3.0.</p>
-<button id="openChromeButton" class="install-primary" type="button">OTWÓRZ W CHROME</button>
-<div class="install-status">Po otwarciu w Chrome zobaczysz ekran instalacji.</div>
-</section>
-<section id="installedCard" class="install-card" hidden>
-<img class="install-app-icon" src="../icons/halloween-icon-192.png?v=7" alt="Ikona Halloween 3.0">
-<div class="install-kicker">GOTOWE 🎃</div>
-<h1 id="installedTitle">Aplikacja jest zainstalowana</h1>
-<p id="installedText">Uruchom Halloween 3.0 z ikony aplikacji.</p>
-<div class="install-steps"><div><strong>1.</strong> Wróć na ekran główny lub do listy aplikacji.</div><div><strong>2.</strong> Stuknij ikonę <strong>Halloween 3.0</strong>.</div></div>
-<button id="showInstallInstead" class="install-secondary" type="button">NIE MA IKONY? POKAŻ INSTALACJĘ</button>
-<div id="installedStatus" class="install-status">Instalacja została wykryta.</div>
+<h1 id="installTitle">Zainstaluj aplikację</h1>
+<p id="installIntro">Wybierz wersję odpowiednią dla swojego telefonu.</p>
+<div id="androidInstall" class="platform-panel" hidden>
+<div class="platform-name">🤖 Android</div>
+<a id="androidDownload" class="install-primary" href="#">POBIERZ APLIKACJĘ NA ANDROID</a>
+<div id="androidVersion" class="install-status">Sprawdzam najnowszą wersję…</div>
+<div class="install-note">Po pobraniu otwórz plik APK. Przy pierwszej instalacji Android może poprosić o zezwolenie na instalowanie aplikacji z tego źródła.</div>
+</div>
+<div id="iosInstall" class="platform-panel" hidden>
+<div class="platform-name">🍎 iPhone / iPad</div>
+<button id="iosInstallButton" class="install-primary" type="button">ZAINSTALUJ NA IPHONE</button>
+<div id="iosInstructions" class="ios-instructions" hidden>
+<div class="install-steps"><div><strong>1.</strong> Otwórz menu udostępniania w przeglądarce.</div><div><strong>2.</strong> Wybierz <strong>Dodaj do ekranu początkowego</strong>.</div><div><strong>3.</strong> Potwierdź przyciskiem <strong>Dodaj</strong>.</div></div>
+<div class="install-status">iOS nie pozwala stronie uruchomić tego okna automatycznie.</div>
+</div>
+</div>
+<div id="platformSwitch" class="platform-switch" hidden></div>
 </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>const SUPABASE_URL='https://jqrzyonpverklusjenej.supabase.co',SUPABASE_KEY='sb_publishable_ncZAYxw3aXlsJYtFOmjG1Q_g3fnCIQ7',sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);</script>
 <script src="../analytics.js?v=1"></script>
-<script src="../install.js?v=5"></script>
+<script src="../install.js?v=6"></script>
 <script>if('serviceWorker'in navigator){window.addEventListener('load',async()=>{try{const r=await navigator.serviceWorker.register('../service-worker.js',{updateViaCache:'none'});await r.update()}catch(e){console.warn(e)}})}</script>
 </body>
 </html>
