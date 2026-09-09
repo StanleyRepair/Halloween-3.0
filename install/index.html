@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#090706">
 <meta name="description" content="Zainstaluj aplikację Halloween 3.0.">
 <title>Zainstaluj Halloween 3.0 🎃</title>
-<link rel="manifest" href="../manifest.webmanifest?v=10">
+<link rel="manifest" href="../manifest.webmanifest?v=11">
 <link rel="icon" href="../icons/halloween-icon-192.png?v=7" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,13 +40,13 @@
 <p id="installedText">Uruchom Halloween 3.0 jako zainstalowaną aplikację.</p>
 <button id="openInstalledAppButton" class="install-primary" type="button">OTWÓRZ APLIKACJĘ</button>
 <button id="showInstallInstead" class="install-secondary" type="button">NIE OTWIERA SIĘ? POKAŻ INSTALACJĘ</button>
-<div id="installedStatus" class="install-status">Przycisk uruchamia aplikację przez jej własny protokół, a nie przez zwykły link WWW.</div>
+<div id="installedStatus" class="install-status">Przycisk uruchamia aplikację przez jej własny protokół.</div>
 </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>const SUPABASE_URL='https://jqrzyonpverklusjenej.supabase.co',SUPABASE_KEY='sb_publishable_ncZAYxw3aXlsJYtFOmjG1Q_g3fnCIQ7',sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);</script>
 <script src="../analytics.js?v=1"></script>
-<script src="../install.js?v=3"></script>
+<script src="../install.js?v=4"></script>
 <script>if('serviceWorker'in navigator){window.addEventListener('load',async()=>{try{const r=await navigator.serviceWorker.register('../service-worker.js',{updateViaCache:'none'});await r.update()}catch(e){console.warn(e)}})}</script>
 </body>
 </html>
