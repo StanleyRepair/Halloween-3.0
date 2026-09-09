@@ -1,0 +1,44 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Restore signing key
+        env:
+          H3_KEYSTORE_BASE64: ${{ secrets.H3_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$H3_KEYSTORE_BASE64" || { echo "Missing H3_KEYSTORE_BASE64 secret"; exit 1; }
+          echo "$H3_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/halloween3-release.keystore"
+
+      - name: Build signed release APK
+        env:
+          H3_KEYSTORE_PATH: ${{ runner.temp }}/halloween3-release.keystore
+          H3_KEYSTORE_PASSWORD: ${{ secrets.H3_KEYSTORE_PASSWORD }}
+          H3_KEY_ALIAS: ${{ secrets.H3_KEY_ALIAS }}
+          H3_KEY_PASSWORD: ${{ secrets.H3_KEY_PASSWORD }}
+        run: gradle --no-daemon -p android-twa :app:assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Halloween-3.0-APK
+          path: android-twa/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
