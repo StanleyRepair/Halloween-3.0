@@ -20,7 +20,7 @@ function ensureContestCompression(){
     let s=document.querySelector('script[data-contest-compression]');
     if(!s){
       s=document.createElement('script');
-      s.src='contest-image-compression.js?v=2';
+      s.src='contest-image-compression.js?v=3';
       s.dataset.contestCompression='1';
       document.body.appendChild(s);
     }
