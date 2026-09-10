@@ -4,21 +4,21 @@ function enhance(){
  const rows=[...logs.querySelectorAll('.audit-row')];
  const auditData=window.__lastAuditLogs||[];
  rows.forEach((row,i)=>{
-  const l=auditData[i];
-  if(!l||l.action!=='news_post_created')return;
+  const l=auditData[i];if(!l||l.action!=='news_post_created')return;
   const title=l.details?.title||'';
   const strong=row.querySelector('strong');
-  if(strong)strong.textContent=title?`Dodano aktualność: ${title}`:'Dodano aktualność';
+  const wantedTitle=title?`Dodano aktualność: ${title}`:'Dodano aktualność';
+  if(strong&&strong.textContent!==wantedTitle)strong.textContent=wantedTitle;
   let bell=row.querySelector('.audit-push-bell');
   if(!bell){bell=document.createElement('span');bell.className='audit-push-bell';row.appendChild(bell)}
-  const pushed=l.details?.push===true;
-  bell.textContent=pushed?'🔔':'🔕';
-  bell.title=pushed?'Wysłano powiadomienie push':'Bez powiadomienia push';
+  const pushed=l.details?.push===true,wanted=pushed?'🔔':'🔕',wantedTip=pushed?'Wysłano powiadomienie push':'Bez powiadomienia push';
+  if(bell.textContent!==wanted)bell.textContent=wanted;
+  if(bell.title!==wantedTip)bell.title=wantedTip;
  });
 }
 const originalRender=window.renderAudit;
 if(typeof originalRender==='function'){
  window.renderAudit=function(items){window.__lastAuditLogs=items||[];originalRender(items);enhance()};
 }
-new MutationObserver(enhance).observe(logs,{childList:true,subtree:true});
+requestAnimationFrame(enhance);
 })();
