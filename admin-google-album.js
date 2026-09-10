@@ -8,6 +8,8 @@ const fields=document.createElement('div');
 fields.className='google-album-meta-fields';
 fields.innerHTML='<label>Tytuł kafelka<input id="googleAlbumTitle" type="text" maxlength="100" placeholder="Wspólny album Google Zdjęcia"></label><label>Opis kafelka<input id="googleAlbumDescription" type="text" maxlength="180" placeholder="Otwórz wspólny album"></label>';
 form.parentNode.insertBefore(fields,form);
+const linkLabel=document.createElement('label');linkLabel.textContent='Link do albumu';form.parentNode.insertBefore(linkLabel,form);
+saveButton.textContent='Zapisz kafelek';
 const style=document.createElement('style');
 style.textContent='.google-album-meta-fields{display:grid;grid-template-columns:1fr;gap:10px;margin:10px 0 12px}.google-album-meta-fields label{margin:0}.google-album-meta-fields input{width:100%}@media(min-width:700px){.google-album-meta-fields{grid-template-columns:1fr 1fr}}';
 document.head.appendChild(style);
