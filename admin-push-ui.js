@@ -1,5 +1,5 @@
 (()=>{
-const richLoader=document.createElement('script');richLoader.src='admin-rich-loader.js?v=1';richLoader.async=true;document.head.appendChild(richLoader);
+const richLoader=document.createElement('script');richLoader.src='admin-rich-loader.js?v=2';richLoader.async=true;document.head.appendChild(richLoader);
 const createBtn=document.getElementById('createNewsPost');if(!createBtn)return;
 const style=document.createElement('style');style.textContent='.audit-row{position:relative;padding-right:54px!important}.audit-push-bell{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:25px;line-height:1;opacity:.42;pointer-events:none}.audit-row>strong{display:block;padding-right:4px}';document.head.appendChild(style);
 const baseRender=window.renderAudit;
