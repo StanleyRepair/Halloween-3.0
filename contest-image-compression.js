@@ -28,8 +28,8 @@ async function compress(file){
       await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject});
     }
 
-    const targetBytes=950*1024;
-    const sides=[2560,2304,2048];
+    const targetBytes=1000*1024;
+    const sides=[2880,2560,2304,2048];
     let lastBlob=null,lastInfo=null;
     for(const maxSide of sides){
       const scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
@@ -60,10 +60,10 @@ async function compress(file){
       ctx.drawImage(img,0,0,canvas.width,canvas.height);
       ctx.filter='none';
 
-      let blob=await canvasToJpeg(canvas,0.96),quality=0.96;
+      let blob=await canvasToJpeg(canvas,0.98),quality=0.98;
       if(blob.size>targetBytes){
-        let lo=0.82,hi=0.96,best=null,bestQ=lo;
-        for(let i=0;i<7;i++){
+        let lo=0.84,hi=0.98,best=null,bestQ=lo;
+        for(let i=0;i<8;i++){
           const q=(lo+hi)/2;
           const candidate=await canvasToJpeg(canvas,q);
           if(candidate.size<=targetBytes){
@@ -78,8 +78,8 @@ async function compress(file){
           blob=best;
           quality=bestQ;
         }else{
-          blob=await canvasToJpeg(canvas,0.82);
-          quality=0.82;
+          blob=await canvasToJpeg(canvas,0.84);
+          quality=0.84;
         }
       }
       lastBlob=blob;
@@ -98,11 +98,11 @@ async function compress(file){
   }
 }
 window.H3ContestCompression={
-  version:4,
-  maxSide:2560,
-  targetBytes:950*1024,
-  maxJpegQuality:0.96,
-  minJpegQuality:0.82,
+  version:5,
+  maxSide:2880,
+  targetBytes:1000*1024,
+  maxJpegQuality:0.98,
+  minJpegQuality:0.84,
   ultraHdrBrightness:1.10,
   colorSpace:'display-p3-float16-with-fallback',
   last:null
