@@ -13,12 +13,19 @@ let deferredPrompt=null,waiters=[],forcedPlatform=null,safariAutoTimer=null,safa
 try{const saved=sessionStorage.getItem('h3_install_platform_override');if(saved==='ios'||saved==='android')forcedPlatform=saved}catch{}
 function detectedPlatform(){return isIOS?'ios':isAndroid?'android':'other'}
 function activePlatform(){return forcedPlatform||detectedPlatform()}
+function narrowSafariToolbar(){const w=Math.min(window.innerWidth||999,screen.width||999);return w<=390}
 function configureIosInstructions(){
   if(!iosSteps)return;
+  const narrow=narrowSafariToolbar();
   if(iosKicker)iosKicker.textContent=isIPad?'IPAD • SAFARI':'IPHONE • SAFARI';
   if(iosLead)iosLead.textContent='W Safari zrób 4 krótkie kroki.';
-  iosSteps.innerHTML='<div><strong>1</strong><span>Stuknij <b>•••</b> w prawym dolnym rogu</span></div><div><strong>2</strong><span>Wybierz <b>Udostępnij</b></span></div><div><strong>3</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>4</strong><span>Jeśli widzisz <b>Otwórz jako aplikację www</b>, zostaw włączone i stuknij <b>Dodaj</b></span></div>';
-  if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML='Jeśli ikonę <b>Udostępnij</b> widzisz od razu na pasku, stuknij ją zamiast <b>•••</b>.'}
+  if(narrow){
+    iosSteps.innerHTML='<div><strong>1</strong><span>Stuknij <b>Menu strony</b> po lewej stronie paska adresu</span></div><div><strong>2</strong><span>Wybierz <b>Udostępnij</b>. Jeśli go nie ma, stuknij najpierw <b>Więcej</b></span></div><div><strong>3</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>4</strong><span>Jeśli widzisz <b>Otwórz jako aplikację www</b>, zostaw włączone i stuknij <b>Dodaj</b></span></div>';
+    if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML='Jeśli zamiast <b>Menu strony</b> widzisz przycisk <b>•••</b>, stuknij <b>••• → Udostępnij</b>.'}
+  }else{
+    iosSteps.innerHTML='<div><strong>1</strong><span>Stuknij <b>•••</b> w prawym dolnym rogu</span></div><div><strong>2</strong><span>Wybierz <b>Udostępnij</b></span></div><div><strong>3</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>4</strong><span>Jeśli widzisz <b>Otwórz jako aplikację www</b>, zostaw włączone i stuknij <b>Dodaj</b></span></div>';
+    if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML='Jeśli nie widzisz <b>•••</b>, użyj <b>Menu strony</b> po lewej stronie paska adresu, a potem wybierz <b>Udostępnij</b>.'}
+  }
 }
 function updateIosInAppNotice(){
   const shouldShow=activePlatform()==='ios'&&isInAppBrowser&&!standalone&&!isSafariIOS;
@@ -90,5 +97,6 @@ async function install(){installBtn.disabled=true;installBtn.textContent='URUCHA
 function openPreferredBrowser(){if(isIOS&&!isSafariIOS&&!isInAppBrowser){openSafari(false);return}window.H3Analytics?.track?.('install_open_chrome_click',{source:/FBAN|FBAV|FB_IAB|Messenger/i.test(ua)?'messenger':'other_browser'});if(isAndroid){const target=location.host+location.pathname+location.search;location.href=`intent://${target}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(location.href)};end`;return}navigator.clipboard?.writeText(location.href).catch(()=>{});chromeBtn.textContent='LINK SKOPIOWANY';setTimeout(()=>{configureBrowserCard()},1800)}
 installBtn?.addEventListener('click',install);chromeBtn?.addEventListener('click',openPreferredBrowser);fallbackBtn?.addEventListener('click',()=>{try{localStorage.removeItem('h3_install_confirmed')}catch{}showInstallChoice();if(installBtn){installBtn.textContent='ZAINSTALUJ APLIKACJĘ';status.textContent='Kliknij instalację. Jeśli Chrome nie pokaże okna, użyj menu ⋮ i opcji „Zainstaluj aplikację”.'}});
 platformSwitch?.addEventListener('click',e=>{const b=e.target.closest('[data-install-platform]');if(b)setPlatform(b.dataset.installPlatform)});
+window.addEventListener('resize',()=>{if(isSafariIOS&&activePlatform()==='ios')configureIosInstructions()});
 (async()=>{configureIosInstructions();markPlatform();if(forcedPlatform){showInstallChoice();return}if(await isInstalled()){setInstalledMarker();showInstalled(true);return}if(isIOS){if(isSafariIOS){show(iosCard);window.H3Analytics?.track?.('install_landing_ios_instructions',{source:'install_page',manual:false})}else{show(browserCard);if(!isInAppBrowser)attemptSafariAuto()}return}if(isChrome){if(hasInstalledMarker())showInstalled(false);else show(installCard)}else show(browserCard)})();
 })();
