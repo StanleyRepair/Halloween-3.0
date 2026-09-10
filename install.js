@@ -11,7 +11,7 @@ try{const saved=sessionStorage.getItem('h3_install_platform_override');if(saved=
 function detectedPlatform(){return isIOS?'ios':isAndroid?'android':'other'}
 function activePlatform(){return forcedPlatform||detectedPlatform()}
 function updateIosInAppNotice(){
-  const shouldShow=activePlatform()==='ios'&&isIOS&&isInAppBrowser&&!standalone;
+  const shouldShow=activePlatform()==='ios'&&isInAppBrowser&&!standalone;
   let notice=document.getElementById('iosInAppNotice');
   if(!shouldShow){if(notice)notice.hidden=true;document.body.classList.remove('ios-inapp-browser');return}
   if(!notice){notice=document.createElement('div');notice.id='iosInAppNotice';notice.className='ios-inapp-notice';notice.setAttribute('role','note');notice.innerHTML='<div class="ios-inapp-notice-copy"><strong>Otwórz w przeglądarce</strong><span>Instalacja z poziomu komunikatora nie zadziała poprawnie. Stuknij menu <b>⋯</b> w prawym górnym rogu i wybierz <b>Otwórz w przeglądarce</b> lub <b>Otwórz w Safari</b>.</span></div><span class="ios-inapp-pointer" aria-hidden="true">↗</span>';document.body.appendChild(notice)}
