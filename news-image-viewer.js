@@ -1,4 +1,5 @@
 (()=>{
+const richRuntime=document.createElement('script');richRuntime.src='rich-runtime.js?v=1';richRuntime.async=true;document.head.appendChild(richRuntime);
 let viewer=null,img=null,stage=null,help=null,scale=1,x=0,y=0,drag=null,lastTouchTap=0,touchStart=null,touchZoomHandled=0;
 function hasFinePointer(){try{return matchMedia('(any-pointer: fine)').matches&&matchMedia('(any-hover: hover)').matches}catch{return false}}
 function hasTouchPointer(){try{return (navigator.maxTouchPoints||0)>0||matchMedia('(pointer: coarse)').matches}catch{return (navigator.maxTouchPoints||0)>0}}
