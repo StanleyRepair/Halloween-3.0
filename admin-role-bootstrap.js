@@ -28,14 +28,16 @@ function roleNow(){
 }
 
 function preloadAdminScripts(){
+  const existing=[...document.head.querySelectorAll('link[data-h3-admin-preload]')];
   for(const src of ADMIN_SCRIPTS){
-    if(document.head.querySelector(`link[data-h3-admin-preload="${CSS.escape(src)}"]`))continue;
+    if(existing.some(link=>link.dataset.h3AdminPreload===src))continue;
     const link=document.createElement('link');
     link.rel='preload';
     link.as='script';
     link.href=src;
     link.dataset.h3AdminPreload=src;
     document.head.appendChild(link);
+    existing.push(link);
   }
 }
 
@@ -45,19 +47,21 @@ function loadScript(src,timeoutMs=6000){
     if(s?.dataset.h3Loaded==='1')return resolve();
     if(s&&s.dataset.h3Managed!=='1')return resolve();
     if(s?.dataset.h3Failed==='1'){s.remove();s=null}
+    let isNew=false;
     if(!s){
       s=document.createElement('script');
       s.src=src;
       s.async=false;
       s.dataset.h3Managed='1';
       s.dataset.h3AdminSrc=src;
-      document.body.appendChild(s);
+      isNew=true;
     }
     let done=false;
+    let timer=null;
     const finish=(ok,error)=>{
       if(done)return;
       done=true;
-      clearTimeout(timer);
+      if(timer)clearTimeout(timer);
       s.removeEventListener('load',onLoad);
       s.removeEventListener('error',onError);
       if(ok){s.dataset.h3Loaded='1';resolve()}
@@ -67,7 +71,8 @@ function loadScript(src,timeoutMs=6000){
     const onError=()=>finish(false,new Error(`Nie udało się wczytać ${src}`));
     s.addEventListener('load',onLoad,{once:true});
     s.addEventListener('error',onError,{once:true});
-    const timer=setTimeout(()=>finish(false,new Error(`Przekroczono czas wczytywania ${src}`)),timeoutMs);
+    timer=setTimeout(()=>finish(false,new Error(`Przekroczono czas wczytywania ${src}`)),timeoutMs);
+    if(isNew)document.body.appendChild(s);
   });
 }
 
