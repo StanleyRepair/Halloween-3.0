@@ -3,7 +3,7 @@ const dashboard=document.getElementById('dashboard');
 const identity=document.getElementById('identity');
 if(!dashboard||!identity)return;
 
-const COMPRESSION_SCRIPT='contest-image-compression.js?v=1';
+const COMPRESSION_SCRIPT='contest-image-compression.js?v=2';
 const ADMIN_SCRIPTS=[
   COMPRESSION_SCRIPT,
   'rich-text.js?v=5',
