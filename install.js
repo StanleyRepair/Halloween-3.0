@@ -13,20 +13,12 @@ let deferredPrompt=null,waiters=[],forcedPlatform=null,safariAutoTimer=null,safa
 try{const saved=sessionStorage.getItem('h3_install_platform_override');if(saved==='ios'||saved==='android')forcedPlatform=saved}catch{}
 function detectedPlatform(){return isIOS?'ios':isAndroid?'android':'other'}
 function activePlatform(){return forcedPlatform||detectedPlatform()}
-function iosVersion(){if(!isIOS)return null;let m=ua.match(/(?:CPU (?:iPhone )?OS|iPhone OS) (\d+)(?:[._](\d+))?/i);if(!m)m=ua.match(/Version\/(\d+)(?:\.(\d+))?/i);return m?{major:Number(m[1])||0,minor:Number(m[2])||0}:null}
-const detectedIOSVersion=iosVersion();
 function configureIosInstructions(){
   if(!iosSteps)return;
-  const version=detectedIOSVersion,modern=!!version&&version.major>=26;
-  if(iosKicker){if(version?.major)iosKicker.textContent=`${isIPad?'IPAD':'IPHONE'} • ${isIPad?'iPadOS':'iOS'} ${version.major}`;else iosKicker.textContent='IPHONE I IPAD'}
-  if(iosLead)iosLead.textContent='W Safari zrób 3 krótkie kroki.';
-  if(modern){
-    iosSteps.innerHTML='<div><strong>1</strong><span><b>•••</b> → <b>Udostępnij</b></span></div><div><strong>2</strong><span><b>Do ekranu głównego</b></span></div><div><strong>3</strong><span>Włącz <b>Otwórz jako aplikację www</b> → <b>Dodaj</b></span></div>';
-    if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML='Masz ikonę <b>Udostępnij</b> na pasku? Stuknij ją od razu zamiast <b>•••</b>.'}
-  }else{
-    iosSteps.innerHTML='<div><strong>1</strong><span>Stuknij <b>Udostępnij</b></span></div><div><strong>2</strong><span><b>Do ekranu głównego</b></span></div><div><strong>3</strong><span><b>Dodaj</b></span></div>';
-    if(iosAlt){iosAlt.hidden=true;iosAlt.textContent=''}
-  }
+  if(iosKicker)iosKicker.textContent=isIPad?'IPAD • SAFARI':'IPHONE • SAFARI';
+  if(iosLead)iosLead.textContent='W Safari zrób 4 krótkie kroki.';
+  iosSteps.innerHTML='<div><strong>1</strong><span>Stuknij <b>•••</b> w prawym dolnym rogu</span></div><div><strong>2</strong><span>Wybierz <b>Udostępnij</b></span></div><div><strong>3</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>4</strong><span>Jeśli widzisz <b>Otwórz jako aplikację www</b>, zostaw włączone i stuknij <b>Dodaj</b></span></div>';
+  if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML='Jeśli ikonę <b>Udostępnij</b> widzisz od razu na pasku, stuknij ją zamiast <b>•••</b>.'}
 }
 function updateIosInAppNotice(){
   const shouldShow=activePlatform()==='ios'&&isInAppBrowser&&!standalone&&!isSafariIOS;
@@ -43,24 +35,25 @@ function safariConfirmNotice(show=true){
   if(!notice){notice=document.createElement('div');notice.id='iosSafariConfirmNotice';notice.className='ios-safari-confirm-notice';notice.setAttribute('role','status');notice.innerHTML='<strong>Zezwól, aby otworzyć w Safari</strong>';document.body.appendChild(notice)}
   notice.hidden=false;document.body.classList.add('ios-safari-handoff');
 }
+function setBrowserButtonVisible(visible){if(!chromeBtn)return;chromeBtn.hidden=!visible;chromeBtn.style.display=visible?'':'none'}
 function configureBrowserCard(){
   if(!browserCard||!chromeBtn)return;
   const mark=browserCard.querySelector('.browser-mark'),kicker=browserCard.querySelector('.install-kicker'),heading=browserCard.querySelector('h1'),copy=browserCard.querySelector('p'),note=browserCard.querySelector('.install-status');
-  chromeBtn.hidden=false;
+  setBrowserButtonVisible(true);
   if(activePlatform()==='ios'&&isIOS&&!isSafariIOS&&isInAppBrowser){
     if(mark)mark.textContent='🌐';
     if(kicker)kicker.textContent='KROK 1';
     if(heading)heading.textContent='Najpierw otwórz w przeglądarce';
     if(copy)copy.innerHTML='Stuknij <b>•••</b> w prawym górnym rogu i wybierz <b>Otwórz w przeglądarce</b>.';
-    chromeBtn.hidden=true;
-    if(note)note.textContent='Po otwarciu w zewnętrznej przeglądarce pomożemy przejść do Safari.';
+    setBrowserButtonVisible(false);
+    if(note)note.textContent='Po otwarciu strony poza Messengerem przejdziesz dalej do Safari.';
     return;
   }
   if(activePlatform()==='ios'&&isIOS&&!isSafariIOS){
     if(mark)mark.textContent='🧭';
     if(kicker)kicker.textContent='KROK 2 • SAFARI';
     if(heading)heading.textContent='Przejdź do Safari';
-    if(copy)copy.textContent='Za chwilę iPhone zapyta o zgodę na otwarcie zewnętrznej aplikacji. Chodzi tylko o Safari.';
+    if(copy)copy.textContent='Za chwilę iPhone poprosi o zgodę na otwarcie Safari.';
     chromeBtn.textContent='OTWÓRZ W SAFARI';
     if(note)note.textContent='W systemowym oknie wybierz „Zezwól”.';
     return;
@@ -86,7 +79,7 @@ function openSafari(auto=false){
   return true
 }
 function attemptSafariAuto(){if(!isIOS||isSafariIOS||isInAppBrowser||standalone)return;let done=false;try{done=sessionStorage.getItem('h3_safari_auto_attempted')==='1';if(!done)sessionStorage.setItem('h3_safari_auto_attempted','1')}catch{}if(done){safariConfirmNotice(true);return}clearTimeout(safariAutoTimer);safariAutoTimer=setTimeout(()=>openSafari(true),180)}
-function showInstallChoice(){const platform=activePlatform();if(platform==='ios'){if(isIOS&&!isSafariIOS&&!standalone){show(browserCard);if(!isInAppBrowser)attemptSafariAuto()}else{show(iosCard);safariConfirmNotice(false);window.H3Analytics?.track?.('install_landing_ios_instructions',{source:'install_page',manual:forcedPlatform==='ios',ios_major:detectedIOSVersion?.major||null})}return}if(platform==='android'){safariConfirmNotice(false);if(isChrome)show(installCard);else show(browserCard);return}if(isChrome){safariConfirmNotice(false);show(installCard);return}safariConfirmNotice(false);show(browserCard)}
+function showInstallChoice(){const platform=activePlatform();if(platform==='ios'){if(isIOS&&!isSafariIOS&&!standalone){show(browserCard);if(!isInAppBrowser)attemptSafariAuto()}else{show(iosCard);safariConfirmNotice(false);window.H3Analytics?.track?.('install_landing_ios_instructions',{source:'install_page',manual:forcedPlatform==='ios'})}return}if(platform==='android'){safariConfirmNotice(false);if(isChrome)show(installCard);else show(browserCard);return}if(isChrome){safariConfirmNotice(false);show(installCard);return}safariConfirmNotice(false);show(browserCard)}
 function setPlatform(platform){if(platform!=='ios'&&platform!=='android')return;forcedPlatform=platform;try{sessionStorage.setItem('h3_install_platform_override',platform)}catch{}showInstallChoice();window.H3Analytics?.track?.('install_platform_override',{platform})}
 function resolvePrompt(){waiters.splice(0).forEach(r=>r())}
 async function isInstalled(){if(standalone)return true;try{if(typeof navigator.getInstalledRelatedApps==='function'){const apps=await navigator.getInstalledRelatedApps();if(Array.isArray(apps)&&apps.some(a=>a.platform==='webapp'))return true}}catch(e){console.warn('Installed app detection failed',e)}return false}
@@ -97,5 +90,5 @@ async function install(){installBtn.disabled=true;installBtn.textContent='URUCHA
 function openPreferredBrowser(){if(isIOS&&!isSafariIOS&&!isInAppBrowser){openSafari(false);return}window.H3Analytics?.track?.('install_open_chrome_click',{source:/FBAN|FBAV|FB_IAB|Messenger/i.test(ua)?'messenger':'other_browser'});if(isAndroid){const target=location.host+location.pathname+location.search;location.href=`intent://${target}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(location.href)};end`;return}navigator.clipboard?.writeText(location.href).catch(()=>{});chromeBtn.textContent='LINK SKOPIOWANY';setTimeout(()=>{configureBrowserCard()},1800)}
 installBtn?.addEventListener('click',install);chromeBtn?.addEventListener('click',openPreferredBrowser);fallbackBtn?.addEventListener('click',()=>{try{localStorage.removeItem('h3_install_confirmed')}catch{}showInstallChoice();if(installBtn){installBtn.textContent='ZAINSTALUJ APLIKACJĘ';status.textContent='Kliknij instalację. Jeśli Chrome nie pokaże okna, użyj menu ⋮ i opcji „Zainstaluj aplikację”.'}});
 platformSwitch?.addEventListener('click',e=>{const b=e.target.closest('[data-install-platform]');if(b)setPlatform(b.dataset.installPlatform)});
-(async()=>{configureIosInstructions();markPlatform();if(forcedPlatform){showInstallChoice();return}if(await isInstalled()){setInstalledMarker();showInstalled(true);return}if(isIOS){if(isSafariIOS){show(iosCard);window.H3Analytics?.track?.('install_landing_ios_instructions',{source:'install_page',manual:false,ios_major:detectedIOSVersion?.major||null})}else{show(browserCard);if(!isInAppBrowser)attemptSafariAuto()}return}if(isChrome){if(hasInstalledMarker())showInstalled(false);else show(installCard)}else show(browserCard)})();
+(async()=>{configureIosInstructions();markPlatform();if(forcedPlatform){showInstallChoice();return}if(await isInstalled()){setInstalledMarker();showInstalled(true);return}if(isIOS){if(isSafariIOS){show(iosCard);window.H3Analytics?.track?.('install_landing_ios_instructions',{source:'install_page',manual:false})}else{show(browserCard);if(!isInAppBrowser)attemptSafariAuto()}return}if(isChrome){if(hasInstalledMarker())showInstalled(false);else show(installCard)}else show(browserCard)})();
 })();
