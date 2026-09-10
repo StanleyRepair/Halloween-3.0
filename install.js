@@ -24,17 +24,19 @@ function track(name,data){if(!previewMode)window.H3Analytics?.track?.(name,data)
 function detectedPlatform(){return isIOS?'ios':isAndroid?'android':'other'}
 function activePlatform(){return forcedPlatform||detectedPlatform()}
 function narrowSafariToolbar(){if(previewMode==='ios13')return true;if(previewMode==='ios16')return false;const w=Math.min(window.innerWidth||999,screen.width||999);return w<=390}
+const pageMenuIcon='<svg class="ios-page-menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M5 3h8v2a2 2 0 1 0 0 4v2H5V9H3a2 2 0 0 1 0-4h2V3z"/><path d="M5 16h14M5 21h10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+function pageMenuLabel(){return `<b class="ios-page-menu-label">${pageMenuIcon}<span>Menu strony</span></b>`}
 function configureIosInstructions(){
   if(!iosSteps)return;
-  const narrow=narrowSafariToolbar();
+  const narrow=narrowSafariToolbar(),menuLabel=pageMenuLabel();
   if(iosKicker)iosKicker.textContent=isIPad?'IPAD • SAFARI':'IPHONE • SAFARI';
-  if(iosLead)iosLead.textContent='W Safari zrób 4 krótkie kroki.';
+  if(iosLead)iosLead.textContent='W Safari zrób 5 krótkich kroków.';
   if(narrow){
-    iosSteps.innerHTML='<div><strong>1</strong><span>Stuknij <b>Menu strony</b> po lewej stronie paska adresu</span></div><div><strong>2</strong><span>Wybierz <b>Udostępnij</b></span></div><div><strong>3</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>4</strong><span>Stuknij <b>Dodaj</b></span></div>';
-    if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML='Jeśli zamiast <b>Menu strony</b> widzisz przycisk <b>•••</b>, użyj <b>••• → Udostępnij</b>.'}
+    iosSteps.innerHTML=`<div><strong>1</strong><span>Stuknij ${menuLabel} po lewej stronie paska adresu</span></div><div><strong>2</strong><span>Wybierz <b>Udostępnij</b></span></div><div><strong>3</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>4</strong><span>Zostaw włączone <b>Otwórz jako aplikację www</b></span></div><div><strong>5</strong><span>Stuknij <b>Dodaj</b></span></div>`;
+    if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML=`Jeśli zamiast ${menuLabel} widzisz przycisk <b>•••</b>, użyj <b>••• → Udostępnij</b>.`}
   }else{
-    iosSteps.innerHTML='<div><strong>1</strong><span>Stuknij <b>•••</b> w prawym dolnym rogu</span></div><div><strong>2</strong><span>Wybierz <b>Udostępnij</b></span></div><div><strong>3</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>4</strong><span>Stuknij <b>Dodaj</b></span></div>';
-    if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML='Jeśli nie widzisz <b>•••</b>, użyj <b>Menu strony</b> po lewej stronie paska adresu, a potem <b>Udostępnij</b>.'}
+    iosSteps.innerHTML='<div><strong>1</strong><span>Stuknij <b>•••</b> w prawym dolnym rogu</span></div><div><strong>2</strong><span>Wybierz <b>Udostępnij</b></span></div><div><strong>3</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>4</strong><span>Zostaw włączone <b>Otwórz jako aplikację www</b></span></div><div><strong>5</strong><span>Stuknij <b>Dodaj</b></span></div>';
+    if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML=`Jeśli nie widzisz <b>•••</b>, użyj ${menuLabel} po lewej stronie paska adresu, a potem <b>Udostępnij</b>.`}
   }
 }
 function updateIosInAppNotice(){
