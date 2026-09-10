@@ -4,7 +4,7 @@
   "short_name": "Halloween 3.0",
   "description": "Halloween 3.0 — aplikacja imprezy przebieranej.",
   "lang": "pl",
-  "start_url": "./",
+  "start_url": "./pwa-boot.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
