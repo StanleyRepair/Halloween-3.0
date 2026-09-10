@@ -35,8 +35,8 @@ linkOnlyBtn.addEventListener('click',()=>share('link',linkOnlyBtn));
 function loadBugAdmin(){
   if(document.getElementById('adminBugReportsPanel'))return;
   if(!document.querySelector('.admin-menu')){setTimeout(loadBugAdmin,120);return}
-  if(!document.querySelector('link[data-admin-bug-reports]')){const l=document.createElement('link');l.rel='stylesheet';l.href='admin-bug-reports.css?v=2';l.dataset.adminBugReports='1';document.head.appendChild(l)}
-  if(!document.querySelector('script[data-admin-bug-reports]')){const s=document.createElement('script');s.src='admin-bug-reports.js?v=2';s.dataset.adminBugReports='1';document.body.appendChild(s)}
+  if(!document.querySelector('link[data-admin-bug-reports]')){const l=document.createElement('link');l.rel='stylesheet';l.href='admin-bug-reports.css?v=3';l.dataset.adminBugReports='1';document.head.appendChild(l)}
+  if(!document.querySelector('script[data-admin-bug-reports]')){const s=document.createElement('script');s.src='admin-bug-reports.js?v=3';s.dataset.adminBugReports='1';document.body.appendChild(s)}
 }
 setTimeout(loadBugAdmin,0);
 })();
