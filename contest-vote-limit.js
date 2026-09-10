@@ -1,5 +1,23 @@
 (()=>{
 const grid=document.getElementById('contestGrid'),counter=document.getElementById('voteCounter'),save=document.getElementById('saveVotes'),help=document.getElementById('voteHelp');if(!grid||!counter||!save)return;
+if(!sb.__h3ContestStorageRpcWrapped){
+ const originalRpc=sb.rpc.bind(sb);
+ sb.rpc=async function(name,args={},options){
+  if(name==='submit_contest_entry'||name==='update_my_entry'){
+   const token=String(args?.p_participant_token||''),imagePath=String(args?.p_image_path||'');
+   const body={action:'participant_save_entry',participant_token:token,name:String(args?.p_name||''),description:String(args?.p_description||''),image_path:imagePath};
+   const{data,error}=await sb.functions.invoke('contest-storage',{body});
+   if(error||data?.error){
+    try{await sb.functions.invoke('contest-storage',{body:{action:'participant_discard_photo',participant_token:token,image_path:imagePath}})}catch{}
+    return{data:null,error:error||new Error(data.error)};
+   }
+   if(data?.old_photo_cleanup_warning)console.warn('Nie udało się posprzątać poprzedniego zdjęcia konkursowego:',data.old_photo_cleanup_warning);
+   return{data:name==='submit_contest_entry'?(data?.entry_id||null):null,error:null};
+  }
+  return originalRpc(name,args,options);
+ };
+ sb.__h3ContestStorageRpcWrapped=true;
+}
 let maxVotes=3,selected=new Set(),syncing=false;
 async function refreshLimit(){try{const{data,error}=await sb.rpc('get_contest_state');if(error)throw error;const s=Array.isArray(data)?data[0]:data;maxVotes=Math.max(1,Number(s?.max_votes||3));syncFromDom();updateUi();if(help&&!save.hidden)help.textContent=`Dotknij zdjęcia, aby oddać lub cofnąć głos. Możesz wybrać maksymalnie ${maxVotes}.`}catch(e){console.warn(e)}}
 function syncFromDom(){selected=new Set([...grid.querySelectorAll('.candidate-card.selected[data-entry]')].map(x=>x.dataset.entry))}
