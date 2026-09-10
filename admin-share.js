@@ -50,5 +50,10 @@ function loadGoogleAlbumEditor(){
   if(!url){setTimeout(loadGoogleAlbumEditor,120);return}
   const s=document.createElement('script');s.src='admin-google-album.js?v=1';s.dataset.adminGoogleAlbum='1';document.body.appendChild(s)
 }
-setTimeout(loadBugAdmin,0);setTimeout(loadPushCenter,0);setTimeout(loadGoogleAlbumEditor,0);
+function loadRichEditor(){
+  if(!document.querySelector('link[data-h3-rich-css]')){const l=document.createElement('link');l.rel='stylesheet';l.href='rich-text.css?v=2';l.dataset.h3RichCss='1';document.head.appendChild(l)}
+  if(document.querySelector('script[data-admin-rich-loader]'))return;
+  const s=document.createElement('script');s.src='admin-rich-loader.js?v=3';s.dataset.adminRichLoader='1';document.body.appendChild(s)
+}
+setTimeout(loadBugAdmin,0);setTimeout(loadPushCenter,0);setTimeout(loadGoogleAlbumEditor,0);setTimeout(loadRichEditor,0);
 })();
