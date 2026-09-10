@@ -1,7 +1,7 @@
 (()=>{
 function loadBugReporting(){
-  if(!document.querySelector('link[data-bug-report]')){const l=document.createElement('link');l.rel='stylesheet';l.href='bug-report.css?v=1';l.dataset.bugReport='1';document.head.appendChild(l)}
-  if(!document.querySelector('script[data-bug-report]')){const s=document.createElement('script');s.src='bug-report.js?v=1';s.dataset.bugReport='1';document.body.appendChild(s)}
+  if(!document.querySelector('link[data-bug-report]')){const l=document.createElement('link');l.rel='stylesheet';l.href='bug-report.css?v=2';l.dataset.bugReport='1';document.head.appendChild(l)}
+  if(!document.querySelector('script[data-bug-report]')){const s=document.createElement('script');s.src='bug-report.js?v=2';s.dataset.bugReport='1';document.body.appendChild(s)}
 }
 function configureInstallLink(){
   const btn=document.getElementById('appInstallButton');if(!btn)return;
