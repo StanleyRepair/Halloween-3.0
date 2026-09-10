@@ -23,6 +23,32 @@ let adminModulesReady=false;
 let adminModulesPromise=null;
 let photographerReady=false;
 
+function installContestStorageRpcBridge(){
+  if(typeof sb==='undefined'||sb.__h3AdminContestStorageRpcWrapped)return;
+  const originalRpc=sb.rpc.bind(sb);
+  sb.rpc=async function(name,args={},options){
+    if(name==='admin_delete_entry'){
+      const{data,error}=await sb.functions.invoke('contest-storage',{body:{action:'admin_delete_entry',device_token:String(args?.p_device_token||''),entry_id:String(args?.p_entry_id||'')}});
+      if(error||data?.error)return{data:null,error:error||new Error(data.error)};
+      if(data?.photo_cleanup_warning)console.warn('Zgłoszenie usunięte, ale sprzątanie zdjęcia zgłosiło problem:',data.photo_cleanup_warning);
+      return{data:null,error:null};
+    }
+    if(name==='admin_submit_contest_entry'){
+      const token=String(args?.p_device_token||''),imagePath=String(args?.p_image_path||'');
+      const body={action:'staff_save_entry',device_token:token,name:String(args?.p_name||''),description:String(args?.p_description||''),image_path:imagePath};
+      const{data,error}=await sb.functions.invoke('contest-storage',{body});
+      if(error||data?.error){
+        try{await sb.functions.invoke('contest-storage',{body:{action:'staff_discard_photo',device_token:token,image_path:imagePath}})}catch{}
+        return{data:null,error:error||new Error(data.error)};
+      }
+      return{data:data?.entry_id||null,error:null};
+    }
+    return originalRpc(name,args,options);
+  };
+  sb.__h3AdminContestStorageRpcWrapped=true;
+}
+installContestStorageRpcBridge();
+
 function roleNow(){
   try{return typeof currentSelf!=='undefined'&&currentSelf?currentSelf.role:null}catch{return null}
 }
