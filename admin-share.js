@@ -38,5 +38,11 @@ function loadBugAdmin(){
   if(!document.querySelector('link[data-admin-bug-reports]')){const l=document.createElement('link');l.rel='stylesheet';l.href='admin-bug-reports.css?v=3';l.dataset.adminBugReports='1';document.head.appendChild(l)}
   if(!document.querySelector('script[data-admin-bug-reports]')){const s=document.createElement('script');s.src='admin-bug-reports.js?v=3';s.dataset.adminBugReports='1';document.body.appendChild(s)}
 }
-setTimeout(loadBugAdmin,0);
+function loadPushCenter(){
+  if(document.getElementById('adminPushCenterPanel'))return;
+  if(!document.querySelector('.admin-menu')){setTimeout(loadPushCenter,120);return}
+  if(!document.querySelector('link[data-admin-push-center]')){const l=document.createElement('link');l.rel='stylesheet';l.href='admin-push-center.css?v=1';l.dataset.adminPushCenter='1';document.head.appendChild(l)}
+  if(!document.querySelector('script[data-admin-push-center]')){const s=document.createElement('script');s.src='admin-push-center.js?v=1';s.dataset.adminPushCenter='1';document.body.appendChild(s)}
+}
+setTimeout(loadBugAdmin,0);setTimeout(loadPushCenter,0);
 })();
