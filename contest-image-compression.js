@@ -56,7 +56,7 @@ async function compress(file){
       ctx.imageSmoothingQuality='high';
       ctx.fillStyle='#fff';
       ctx.fillRect(0,0,canvas.width,canvas.height);
-      const brightness=ultraHdr?1.10:1.04;
+      const brightness=ultraHdr?1.10:1.06;
       if(brightness!==1)ctx.filter=`brightness(${brightness})`;
       ctx.drawImage(img,0,0,canvas.width,canvas.height);
       ctx.filter='none';
@@ -99,12 +99,12 @@ async function compress(file){
   }
 }
 window.H3ContestCompression={
-  version:6,
+  version:7,
   maxSide:2880,
   targetBytes:1000*1024,
   maxJpegQuality:0.98,
   minJpegQuality:0.84,
-  normalBrightness:1.04,
+  normalBrightness:1.06,
   ultraHdrBrightness:1.10,
   colorSpace:'display-p3-float16-with-fallback',
   last:null
