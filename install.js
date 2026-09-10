@@ -4,12 +4,20 @@ const standalone=matchMedia('(display-mode: standalone)').matches||navigator.sta
 const isIOS=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const isChrome=/Chrome\/\d+/i.test(ua)&&!/EdgA|EdgiOS|OPR|SamsungBrowser|FBAN|FBAV|FB_IAB|Messenger|Instagram/i.test(ua);
 const isAndroid=/Android/i.test(ua);
+const isInAppBrowser=/FBAN|FBAV|FB_IAB|Messenger|Instagram|WhatsApp|Line\/|MicroMessenger|Telegram|Snapchat|TikTok/i.test(ua);
 const installCard=document.getElementById('chromeInstallCard'),iosCard=document.getElementById('iosInstallCard'),browserCard=document.getElementById('openChromeCard'),installedCard=document.getElementById('installedCard'),installBtn=document.getElementById('installNowButton'),chromeBtn=document.getElementById('openChromeButton'),fallbackBtn=document.getElementById('showInstallInstead'),status=document.getElementById('installStatus'),installedTitle=document.getElementById('installedTitle'),installedText=document.getElementById('installedText'),installedStatus=document.getElementById('installedStatus'),platformSwitch=document.getElementById('installPlatformSwitch');
 let deferredPrompt=null,waiters=[],forcedPlatform=null;
 try{const saved=sessionStorage.getItem('h3_install_platform_override');if(saved==='ios'||saved==='android')forcedPlatform=saved}catch{}
 function detectedPlatform(){return isIOS?'ios':isAndroid?'android':'other'}
 function activePlatform(){return forcedPlatform||detectedPlatform()}
-function markPlatform(){platformSwitch?.querySelectorAll('[data-install-platform]').forEach(b=>{const active=b.dataset.installPlatform===activePlatform();b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')})}
+function updateIosInAppNotice(){
+  const shouldShow=activePlatform()==='ios'&&isIOS&&isInAppBrowser&&!standalone;
+  let notice=document.getElementById('iosInAppNotice');
+  if(!shouldShow){if(notice)notice.hidden=true;document.body.classList.remove('ios-inapp-browser');return}
+  if(!notice){notice=document.createElement('div');notice.id='iosInAppNotice';notice.className='ios-inapp-notice';notice.setAttribute('role','note');notice.innerHTML='<div class="ios-inapp-notice-copy"><strong>Otwórz w przeglądarce</strong><span>Instalacja z poziomu komunikatora nie zadziała poprawnie. Stuknij menu <b>⋯</b> w prawym górnym rogu i wybierz <b>Otwórz w przeglądarce</b> lub <b>Otwórz w Safari</b>.</span></div><span class="ios-inapp-pointer" aria-hidden="true">↗</span>';document.body.appendChild(notice)}
+  notice.hidden=false;document.body.classList.add('ios-inapp-browser');
+}
+function markPlatform(){platformSwitch?.querySelectorAll('[data-install-platform]').forEach(b=>{const active=b.dataset.installPlatform===activePlatform();b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});updateIosInAppNotice()}
 function show(el){[installCard,iosCard,browserCard,installedCard].forEach(x=>{if(x)x.hidden=x!==el});markPlatform()}
 function setInstalledMarker(){try{localStorage.setItem('h3_install_confirmed','1')}catch{}}
 function hasInstalledMarker(){try{return localStorage.getItem('h3_install_confirmed')==='1'}catch{return false}}
