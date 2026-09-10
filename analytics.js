@@ -39,6 +39,7 @@ track('page_open',{source});if(standalone)track('pwa_open',{source});
 if(session)rpc('analytics_register_link_session',{p_visitor_id:visitor,p_session_id:session,p_source:source,p_context:context});
 if(standalone)track('install',{detected:'standalone'});
 window.addEventListener('appinstalled',()=>track('install',{detected:'appinstalled'}));
+document.addEventListener('click',e=>{const t=e.target;const b=t&&t.closest?t.closest('#spinButton,#againButton'):null;if(!b||b.disabled)return;track('costume_draw',{trigger:b.id==='againButton'?'again':'spin'})},true);
 const campaign=params.get('h3push');if(campaign)pushOpen(campaign);
 navigator.serviceWorker?.addEventListener('message',e=>{const d=e.data||{};if(d.type==='H3_NOTIFICATION_OPEN'){if(d.campaignId)pushOpen(d.campaignId);const hash=String(d.url||'').split('#')[1];if(hash&&typeof openTab==='function'&&['news','contest','photos','draw','other'].includes(hash))openTab(hash)}});
 })();
