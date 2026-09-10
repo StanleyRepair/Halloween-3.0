@@ -40,7 +40,7 @@ function safariConfirmNotice(show=true){
   let notice=document.getElementById('iosSafariConfirmNotice');
   const allowed=show&&isIOS&&!isSafariIOS&&!isInAppBrowser&&!standalone;
   if(!allowed){if(notice)notice.hidden=true;document.body.classList.remove('ios-safari-handoff');return}
-  if(!notice){notice=document.createElement('div');notice.id='iosSafariConfirmNotice';notice.className='ios-safari-confirm-notice';notice.setAttribute('role','status');notice.innerHTML='<strong>👇 STUKNIJ „ZEZWÓL”</strong><span>Otworzy się tylko <b>Safari</b>. To zwykła zmiana przeglądarki, aplikacja nie jest jeszcze instalowana.</span>';document.body.appendChild(notice)}
+  if(!notice){notice=document.createElement('div');notice.id='iosSafariConfirmNotice';notice.className='ios-safari-confirm-notice';notice.setAttribute('role','status');notice.innerHTML='<strong>Zezwól, aby otworzyć w Safari</strong>';document.body.appendChild(notice)}
   notice.hidden=false;document.body.classList.add('ios-safari-handoff');
 }
 function configureBrowserCard(){
