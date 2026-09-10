@@ -19,31 +19,76 @@ const ADMIN_SCRIPTS=[
   'admin-disk.js?v=3'
 ];
 
-let adminModulesStarted=false;
+let adminModulesReady=false;
+let adminModulesPromise=null;
 let photographerReady=false;
 
 function roleNow(){
   try{return typeof currentSelf!=='undefined'&&currentSelf?currentSelf.role:null}catch{return null}
 }
 
-function loadScript(src){
+function preloadAdminScripts(){
+  for(const src of ADMIN_SCRIPTS){
+    if(document.head.querySelector(`link[data-h3-admin-preload="${CSS.escape(src)}"]`))continue;
+    const link=document.createElement('link');
+    link.rel='preload';
+    link.as='script';
+    link.href=src;
+    link.dataset.h3AdminPreload=src;
+    document.head.appendChild(link);
+  }
+}
+
+function loadScript(src,timeoutMs=6000){
   return new Promise((resolve,reject)=>{
-    const existing=[...document.scripts].find(s=>s.getAttribute('src')===src);
-    if(existing)return resolve();
-    const s=document.createElement('script');
-    s.src=src;
-    s.onload=resolve;
-    s.onerror=()=>reject(new Error(`Nie udało się wczytać ${src}`));
-    document.body.appendChild(s);
+    let s=[...document.scripts].find(el=>el.dataset.h3AdminSrc===src||el.getAttribute('src')===src);
+    if(s?.dataset.h3Loaded==='1')return resolve();
+    if(s&&s.dataset.h3Managed!=='1')return resolve();
+    if(s?.dataset.h3Failed==='1'){s.remove();s=null}
+    if(!s){
+      s=document.createElement('script');
+      s.src=src;
+      s.async=false;
+      s.dataset.h3Managed='1';
+      s.dataset.h3AdminSrc=src;
+      document.body.appendChild(s);
+    }
+    let done=false;
+    const finish=(ok,error)=>{
+      if(done)return;
+      done=true;
+      clearTimeout(timer);
+      s.removeEventListener('load',onLoad);
+      s.removeEventListener('error',onError);
+      if(ok){s.dataset.h3Loaded='1';resolve()}
+      else{s.dataset.h3Failed='1';s.remove();reject(error)}
+    };
+    const onLoad=()=>finish(true);
+    const onError=()=>finish(false,new Error(`Nie udało się wczytać ${src}`));
+    s.addEventListener('load',onLoad,{once:true});
+    s.addEventListener('error',onError,{once:true});
+    const timer=setTimeout(()=>finish(false,new Error(`Przekroczono czas wczytywania ${src}`)),timeoutMs);
   });
 }
 
 async function loadAdminModules(){
-  if(adminModulesStarted)return;
-  adminModulesStarted=true;
-  for(const src of ADMIN_SCRIPTS){
-    try{await loadScript(src)}catch(e){console.error(e)}
-  }
+  if(adminModulesReady)return true;
+  if(adminModulesPromise)return adminModulesPromise;
+  preloadAdminScripts();
+  adminModulesPromise=(async()=>{
+    for(const src of ADMIN_SCRIPTS){
+      try{await loadScript(src)}
+      catch(e){
+        console.error(e);
+        setTimeout(()=>{if(!adminModulesReady)loadAdminModules()},1200);
+        return false;
+      }
+    }
+    adminModulesReady=true;
+    return true;
+  })();
+  try{return await adminModulesPromise}
+  finally{adminModulesPromise=null}
 }
 
 function hideRegularDashboard(){
