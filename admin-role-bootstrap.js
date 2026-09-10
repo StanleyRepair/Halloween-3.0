@@ -3,7 +3,9 @@ const dashboard=document.getElementById('dashboard');
 const identity=document.getElementById('identity');
 if(!dashboard||!identity)return;
 
+const COMPRESSION_SCRIPT='contest-image-compression.js?v=1';
 const ADMIN_SCRIPTS=[
+  COMPRESSION_SCRIPT,
   'rich-text.js?v=5',
   'admin-rich-loader.js?v=4',
   'admin-share.js?v=4',
@@ -14,7 +16,7 @@ const ADMIN_SCRIPTS=[
   'admin-menu.js?v=11',
   'admin-install-preview.js?v=1',
   'admin-push-center.js?v=3',
-  'admin-contest-extra.js?v=1',
+  'admin-contest-extra.js?v=2',
   'admin-contest-push.js?v=1',
   'admin-disk.js?v=3'
 ];
@@ -157,7 +159,7 @@ function ensurePhotographerWorkspace(){
         </div>
         <label class="contest-extra-photo">📷 Wybierz zdjęcie<input id="photoEntryPhoto" type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
         <img id="photoEntryPreview" class="contest-extra-preview" hidden alt="Podgląd zdjęcia">
-        <div class="contest-extra-note">Maksymalny rozmiar zdjęcia to 15 MB.</div>
+        <div class="contest-extra-note">Każde zdjęcie konkursowe jest przetwarzane identycznie. Docelowy rozmiar to około 1 MB.</div>
         <button id="photoSubmitEntry" class="primary" type="button">DODAJ UCZESTNIKA</button>
       </section>
     </div>`;
@@ -207,8 +209,10 @@ function bindPhotographerForm(){
     if(!['jpg','jpeg','png','webp'].includes(ext))return msg('Obsługiwane formaty zdjęć: JPG, PNG i WEBP.',true);
     button.disabled=true;
     try{
-      const path=`admin/${crypto.randomUUID()}.${ext}`;
-      const{error:uploadError}=await sb.storage.from('contest-photos').upload(path,upload,{contentType:upload.type||'image/jpeg',upsert:false});
+      if(typeof window.H3ContestCompress!=='function')throw new Error('Moduł kompresji zdjęć nie został wczytany.');
+      const processed=await window.H3ContestCompress(upload);
+      const path=`admin/${crypto.randomUUID()}.jpg`;
+      const{error:uploadError}=await sb.storage.from('contest-photos').upload(path,processed,{contentType:'image/jpeg',upsert:false});
       if(uploadError)throw uploadError;
       const{error}=await sb.rpc('admin_submit_contest_entry',{p_device_token:adminDevice,p_name:participantName,p_description:description,p_image_path:path});
       if(error)throw error;
@@ -243,12 +247,21 @@ function setupPhotographer(){
   if(location.hash==='#admin-contest')showPhotographerContest();else showPhotographerMenu();
 }
 
-function bootForCurrentRole(){
+async function bootForCurrentRole(){
   if(dashboard.hidden)return;
   const role=roleNow();
   if(!role)return;
-  if(role==='photographer')setupPhotographer();
-  else loadAdminModules();
+  if(role==='photographer'){
+    try{
+      await loadScript(COMPRESSION_SCRIPT);
+      setupPhotographer();
+    }catch(e){
+      console.error(e);
+      msg('Nie udało się wczytać kompresji zdjęć. Odśwież panel.',true);
+    }
+  }else{
+    loadAdminModules();
+  }
 }
 
 new MutationObserver(bootForCurrentRole).observe(dashboard,{attributes:true,attributeFilter:['hidden']});
