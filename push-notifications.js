@@ -7,8 +7,8 @@ const standalone=matchMedia('(display-mode: standalone)').matches||navigator.sta
 let card,btn,copy,help,permissionWatcher,busy=false;
 function b64ToU8(base64){const pad='='.repeat((4-base64.length%4)%4),s=(base64+pad).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(s);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)))}
 function canPush(){return 'serviceWorker'in navigator&&'PushManager'in window&&'Notification'in window}
-function waitForSW(ms=7000){return Promise.race([navigator.serviceWorker.ready,new Promise((_,rej)=>setTimeout(()=>rej(new Error('SW timeout')),ms))])}
-async function saveSubscription(sub){const json=sub.toJSON();const{error}=await sb.rpc('save_push_subscription',{p_endpoint:json.endpoint,p_p256dh:json.keys?.p256dh||'',p_auth:json.keys?.auth||'',p_user_agent:navigator.userAgent});if(error)throw error}
+function waitForSW(ms=10000){const timeout=new Promise((_,rej)=>setTimeout(()=>{const e=new Error('Service worker timeout');e.code='SW_TIMEOUT';rej(e)},ms));return Promise.race([navigator.serviceWorker.ready,timeout])}
+async function saveSubscription(sub){const json=sub.toJSON();const{error}=await sb.rpc('save_push_subscription',{p_endpoint:json.endpoint,p_p256dh:json.keys?.p256dh||'',p_auth:json.keys?.auth||'',p_user_agent:navigator.userAgent});if(error){const e=new Error(error.message||'Subscription save failed');e.code='SAVE_FAILED';e.cause=error;throw e}}
 function setCard(text,label='Włącz',disabled=false){if(!card)return;copy.textContent=text;btn.textContent=label;btn.disabled=disabled;card.hidden=false}
 function closeHelp(){if(help)help.hidden=true}
 function toggleHelp(){if(!help)return;if(help.hidden)showHelp();else closeHelp()}
@@ -28,25 +28,51 @@ async function getPushPermissionState(reg){
     return null;
   }
 }
+function handleSetupError(e,stage){
+  console.warn('Push setup failed',{stage,name:e?.name,code:e?.code,message:e?.message,error:e});
+  if(e?.code==='SW_TIMEOUT'){
+    setCard('Moduł powiadomień nie uruchomił się na czas. Zamknij aplikację, uruchom ją ponownie i kliknij „Ponów”.','Ponów');
+    return;
+  }
+  if(e?.code==='SAVE_FAILED'||stage==='save'){
+    setCard('Telefon utworzył subskrypcję, ale nie udało się zapisać jej na serwerze. Kliknij „Ponów”.','Ponów');
+    return;
+  }
+  if(e?.name==='NotAllowedError'||e?.name==='SecurityError'){
+    setCard('System lub przeglądarka blokuje powiadomienia. Kliknij „Napraw”, aby sprawdzić ustawienia.','Napraw');
+    return;
+  }
+  if(e?.name==='AbortError'){
+    setCard('Usługa powiadomień Androida chwilowo nie odpowiedziała. Odczekaj kilka sekund i kliknij „Ponów”.','Ponów');
+    return;
+  }
+  if(stage==='subscribe'){
+    setCard('Nie udało się utworzyć subskrypcji push na tym telefonie. Kliknij „Ponów”.','Ponów');
+    return;
+  }
+  setCard('Nie udało się dokończyć włączania powiadomień. Kliknij „Ponów”.','Ponów');
+}
 async function ensureSubscription(showConfirmation=false){
-  if(busy)return false;busy=true;btn.disabled=true;
+  if(busy)return false;busy=true;btn.disabled=true;let stage='service-worker';
   try{
     const reg=await waitForSW();
+    stage='permission';
     const pushPermission=await getPushPermissionState(reg);
     if(pushPermission==='denied'){
       setCard('Powiadomienia są zablokowane w ustawieniach systemu lub przeglądarki. Kliknij „Napraw”.','Napraw');
       return false;
     }
+    stage='subscribe';
     let sub=await reg.pushManager.getSubscription();
     if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(VAPID_PUBLIC)});
+    stage='save';
     await saveSubscription(sub);
     try{localStorage.setItem('h3_push_enabled','1')}catch{}
     closeHelp();card.hidden=true;
     if(showConfirmation)await showTest(reg);
     return true;
   }catch(e){
-    console.warn('Push subscription failed',e);
-    setCard('Nie udało się dokończyć włączania powiadomień. Sprawdź połączenie i spróbuj ponownie.','Ponów');
+    handleSetupError(e,stage);
     return false;
   }finally{busy=false;if(btn&&!card.hidden)btn.disabled=false}
 }
@@ -87,7 +113,7 @@ async function refreshState(fromUser=false){
     return;
   }
   try{
-    const reg=await waitForSW(5000);
+    const reg=await waitForSW(8000);
     const pushPermission=await getPushPermissionState(reg);
     if(pushPermission==='denied'){
       try{localStorage.removeItem('h3_push_enabled')}catch{}
@@ -97,15 +123,21 @@ async function refreshState(fromUser=false){
     }
     const sub=await reg.pushManager.getSubscription();
     if(sub){
-      await saveSubscription(sub);
-      try{localStorage.setItem('h3_push_enabled','1')}catch{}
-      closeHelp();card.hidden=true;return;
+      try{
+        await saveSubscription(sub);
+        try{localStorage.setItem('h3_push_enabled','1')}catch{}
+        closeHelp();card.hidden=true;return;
+      }catch(e){
+        handleSetupError(e,'save');
+        return;
+      }
     }
     closeHelp();setCard('Zgoda jest już włączona. Dokończ aktywację powiadomień.','Włącz');
     if(fromUser)await ensureSubscription(true);
   }catch(e){
     console.warn('Push state refresh failed',e);
-    setCard('Nie udało się sprawdzić stanu powiadomień. Kliknij, aby spróbować ponownie.','Ponów');
+    if(e?.code==='SW_TIMEOUT')setCard('Moduł powiadomień jeszcze się nie uruchomił. Zamknij aplikację, otwórz ją ponownie i kliknij „Ponów”.','Ponów');
+    else setCard('Nie udało się sprawdzić stanu powiadomień. Kliknij, aby spróbować ponownie.','Ponów');
   }
 }
 async function watchPermission(){
