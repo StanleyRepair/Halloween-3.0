@@ -10,7 +10,7 @@ function ensureAssets(){
   if(assetsPromise)return assetsPromise;
   assetsPromise=new Promise((resolve,reject)=>{
     if(!document.querySelector('link[data-pumpkin-blaster]')){const l=document.createElement('link');l.rel='stylesheet';l.href='pumpkin-blaster.css?v=1';l.dataset.pumpkinBlaster='1';document.head.appendChild(l)}
-    const s=document.createElement('script');s.src='pumpkin-blaster-v2.js?v=1';s.async=true;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)
+    const s=document.createElement('script');s.src='pumpkin-blaster-v2.js?v=2';s.async=true;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)
   });
   return assetsPromise;
 }
