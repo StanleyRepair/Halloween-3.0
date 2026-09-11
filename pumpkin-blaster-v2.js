@@ -4,7 +4,7 @@ const W=540,BEST='h3_pumpkin_blaster_best',LANES=[90,270,450],clamp=(v,a,b)=>Mat
 const rewards=[{k:'dmg',i:'🔥',t:'DMG +1'},{k:'rate',i:'⚡',t:'SZYBKOŚĆ'},{k:'multi',i:'🔱',t:'+1 POCISK'},{k:'pts',i:'🍬',t:'+100'}];
 function mount(host){
   unmount();
-  host.innerHTML='<div class="blaster-shell"><div class="blaster-hud"><div><span>Wynik</span><strong class="blaster-score">0</strong></div><div><span>Fala</span><strong class="blaster-wave">1</strong></div><div><span>Rekord</span><strong class="blaster-best">0</strong></div></div><div class="blaster-stage"><canvas class="blaster-canvas" width="540" height="900"></canvas><button class="blaster-exit-fs" type="button">✕</button><div class="blaster-overlay"><div class="blaster-card"><h3>🎃 Pumpkin Blaster</h3><p>Przesuwaj łowcę w lewo i prawo. Barykady pojawiają się losowo na jednym, dwóch albo czasem trzech torach.</p><button class="blaster-start" type="button">START</button></div></div></div><div class="blaster-tip">Układ przeszkód jest losowy. Nie każdy rząd zajmuje wszystkie trzy tory.</div></div>';
+  host.innerHTML='<div class="blaster-shell"><div class="blaster-hud"><div><span>Wynik</span><strong class="blaster-score">0</strong></div><div><span>Fala</span><strong class="blaster-wave">1</strong></div><div><span>Rekord</span><strong class="blaster-best">0</strong></div></div><div class="blaster-stage"><canvas class="blaster-canvas" width="540" height="900"></canvas><button class="blaster-exit-fs" type="button">✕</button><div class="blaster-overlay"><div class="blaster-card"><h3>🎃 Pumpkin Blaster</h3><p>Przesuwaj łowcę w lewo i prawo. Barykady pojawiają się losowo, a ich siła rośnie wraz z mocą Twojego uzbrojenia.</p><button class="blaster-start" type="button">START</button></div></div></div><div class="blaster-tip">Tempo i wytrzymałość przeszkód rosną razem z postępem. Mocniejsza broń oznacza mocniejsze cele.</div></div>';
   const cv=host.querySelector('canvas'),ctx=cv.getContext('2d',{alpha:false}),ov=host.querySelector('.blaster-overlay'),card=host.querySelector('.blaster-card'),startBtn=host.querySelector('.blaster-start'),scoreEl=host.querySelector('.blaster-score'),waveEl=host.querySelector('.blaster-wave'),bestEl=host.querySelector('.blaster-best'),exitBtn=host.querySelector('.blaster-exit-fs');
   let H=900,scale=1,best=Number(localStorage.getItem(BEST)||0),score=0,wave=1,nextWave=1,rows=[],spawnClock=0,bullets=[],parts=[],damage=1,delay=.17,multi=1,fire=0,x=270,target=270,running=false,raf=0,last=0,drag=false,full=false,pushed=false,ro=null;
   bestEl.textContent=best;
@@ -13,17 +13,20 @@ function mount(host){
   ro=new ResizeObserver(fit);ro.observe(cv);fit();
   function hud(){scoreEl.textContent=Math.floor(score);waveEl.textContent=wave;bestEl.textContent=best}
   function reward(i,w){let pool=w<2?rewards.filter(r=>r.k!=='multi'):rewards;let r=pool[Math.floor(Math.random()*pool.length)];if(i===1&&w%5===0)r=rewards[2];return {...r}}
-  function rowSpeed(w){return Math.min(170,90+w*2.4)}
-  function spawnDelay(w){const lo=Math.max(2.35,3.2-w*.025),hi=Math.max(3.15,4.45-w*.02);return rnd(lo,hi)}
-  function laneCount(w,boss){if(boss)return 3;const r=Math.random();if(r<.5)return 1;if(r<.9)return 2;return 3}
+  function rowSpeed(w){return Math.min(182,96+w*2.7)}
+  function spawnDelay(w){const lo=Math.max(2.18,2.92-w*.021),hi=Math.max(2.95,4.06-w*.018);return rnd(lo,hi)}
+  function laneCount(w,boss){if(boss)return 3;const r=Math.random();if(r<.48)return 1;if(r<.9)return 2;return 3}
+  function shipPower(){const rate=.17/Math.max(.065,delay),spread=1+(multi-1)*.45;return Math.max(1,damage*rate*spread)}
+  function hpScale(){return clamp(Math.pow(shipPower(),.44),1,4.35)}
   function addRow(){
-    const w=nextWave++,base=7+w*2.15,boss=w%7===0,count=laneCount(w,boss),laneIds=[0,1,2].sort(()=>Math.random()-.5).slice(0,count),easy=laneIds[Math.floor(Math.random()*laneIds.length)];
+    const w=nextWave++,base=7.5+w*2.28,boss=w%7===0,count=laneCount(w,boss),laneIds=[0,1,2].sort(()=>Math.random()-.5).slice(0,count),easy=laneIds[Math.floor(Math.random()*laneIds.length)],power=hpScale();
     const barriers=laneIds.map((lane,pos)=>{
       let factor;
-      if(boss)factor=lane===easy?.92:rnd(1.18,1.5);
-      else if(lane===easy)factor=rnd(.48,.65);
-      else factor=rnd(.88,1.18);
-      const hp=Math.max(3,Math.round(base*factor));
+      if(boss)factor=lane===easy?.98:rnd(1.25,1.58);
+      else if(lane===easy)factor=rnd(.52,.69);
+      else factor=rnd(.95,1.25);
+      const adaptive=power*rnd(.94,1.08)*(boss?1.1:1);
+      const hp=Math.max(3,Math.round(base*factor*adaptive));
       return{x:LANES[lane],hp,max:hp,r:reward(pos,w),broken:false,taken:false,flash:0}
     });
     rows.push({id:w,w,y:-90,speed:rowSpeed(w),boss,b:barriers});wave=Math.max(wave,w);spawnClock=spawnDelay(w);hud();
@@ -36,7 +39,7 @@ function mount(host){
   function take(b,r){if(b.taken)return;b.taken=true;if(b.r.k==='dmg')damage=Math.min(10,damage+1);else if(b.r.k==='rate')delay=Math.max(.065,delay*.85);else if(b.r.k==='multi')multi=Math.min(6,multi+1);else score+=100;score+=35;burst(b.x,r.y,'#ffc56c',12);try{navigator.vibrate?.(16)}catch{}}
   function update(dt){
     x+=(target-x)*Math.min(1,dt*14);fire-=dt;if(fire<=0){shoot();fire+=delay}
-    spawnClock-=dt;if(spawnClock<=0){if(rows.length<3)addRow();else spawnClock=.55}
+    spawnClock-=dt;if(spawnClock<=0){if(rows.length<3)addRow();else spawnClock=.7}
     for(const r of rows){r.y+=r.speed*dt;r.b.forEach(b=>b.flash=Math.max(0,b.flash-dt*5))}
     bullets.forEach(p=>p.y+=p.vy*dt);
     const hitRows=[...rows].sort((a,b)=>b.y-a.y);
