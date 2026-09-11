@@ -2,15 +2,15 @@
 const panel=document.getElementById('podiumPanel');
 const podium=document.getElementById('podium');
 const contestView=document.querySelector('.app-view[data-view="contest"]');
-const contestTab=document.querySelector('.nav-item[data-tab="contest"]');
-if(!panel||!podium||!contestView||!contestTab)return;
+if(!panel||!podium||!contestView)return;
 
-let cycle=0,handledCycle=-1,autoTimer=null,removeTimer=null;
+let cycle=0,armedCycle=-1,autoTimer=null,removeTimer=null,cycleStartedAt=0,manualRequested=false;
 const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 function clearTimers(){clearTimeout(autoTimer);clearTimeout(removeTimer);autoTimer=null;removeTimer=null}
-function cleanup(){clearTimers();panel.querySelector('.h3-curtain-overlay')?.remove();panel.querySelector('.h3-confetti-layer')?.remove();panel.classList.remove('h3-reveal-stage','h3-reveal-opening')}
-function isReady(){return !panel.hidden&&podium.children.length>0&&!contestView.hidden}
+function cleanup(){clearTimers();panel.querySelector('.h3-curtain-overlay')?.remove();panel.querySelector('.h3-confetti-layer')?.remove();panel.classList.remove('h3-reveal-stage','h3-reveal-opening');manualRequested=false}
+function stageVisible(){return !panel.hidden&&!contestView.hidden}
+function winnersReady(){return podium.children.length>0}
 
 function makeCurtains(){
  const overlay=document.createElement('div');
@@ -18,7 +18,7 @@ function makeCurtains(){
  overlay.setAttribute('role','button');
  overlay.setAttribute('tabindex','0');
  overlay.setAttribute('aria-label','Odsłoń zwycięzców konkursu');
- overlay.innerHTML='<div class="h3-curtain h3-curtain-left"></div><div class="h3-curtain h3-curtain-right"></div><div class="h3-curtain-valance"></div><div class="h3-curtain-prompt"><strong>🎭 ODSŁOŃ ZWYCIĘZCÓW</strong><span>Dotknij kotary lub poczekaj 3 sekundy</span></div>';
+ overlay.innerHTML='<div class="h3-stage-shadow"></div><div class="h3-curtain h3-curtain-left"><span class="h3-curtain-tie"></span></div><div class="h3-curtain h3-curtain-right"><span class="h3-curtain-tie"></span></div><div class="h3-curtain-valance"></div><div class="h3-curtain-prompt"><strong>🎭 WYNIKI ZA KOTARĄ</strong><span class="h3-curtain-hint">Przygotowuję podium...</span></div>';
  return overlay;
 }
 
@@ -27,8 +27,8 @@ function confetti(){
  panel.querySelector('.h3-confetti-layer')?.remove();
  const layer=document.createElement('div');
  layer.className='h3-confetti-layer';
- const colors=['#ff3b30','#ff9f0a','#ffd60a','#ffffff','#d41414','#ff6a00'];
- const amount=Math.min(82,Math.max(52,Math.round(panel.clientWidth/6)));
+ const colors=['#ff3b30','#ff9f0a','#ffd60a','#fff4dc','#c90e20','#ff6a00'];
+ const amount=Math.min(86,Math.max(54,Math.round(panel.clientWidth/6)));
  const fall=Math.max(380,panel.clientHeight+120);
  for(let i=0;i<amount;i++){
   const p=document.createElement('i');
@@ -49,40 +49,77 @@ function confetti(){
 }
 
 function reveal(overlay){
- if(!overlay||overlay.classList.contains('h3-open'))return;
+ if(!overlay||overlay.classList.contains('h3-open')||!winnersReady())return;
  clearTimeout(autoTimer);autoTimer=null;
  overlay.classList.add('h3-open');
  panel.classList.add('h3-reveal-opening');
- setTimeout(confetti,reduceMotion?0:360);
- removeTimer=setTimeout(()=>{overlay.remove();panel.classList.remove('h3-reveal-stage','h3-reveal-opening')},reduceMotion?220:1500);
+ setTimeout(confetti,reduceMotion?0:420);
+ removeTimer=setTimeout(()=>{overlay.remove();panel.classList.remove('h3-reveal-stage','h3-reveal-opening')},reduceMotion?180:1650);
+}
+
+function refreshOverlay(overlay){
+ if(!overlay||overlay.classList.contains('h3-open'))return;
+ const title=overlay.querySelector('.h3-curtain-prompt strong');
+ const hint=overlay.querySelector('.h3-curtain-hint');
+ if(!winnersReady()){
+  overlay.classList.remove('h3-ready');
+  if(title)title.textContent='🎭 WYNIKI ZA KOTARĄ';
+  if(hint)hint.textContent='Przygotowuję podium...';
+  return;
+ }
+ overlay.classList.add('h3-ready');
+ if(title)title.textContent='🎭 ODSŁOŃ ZWYCIĘZCÓW';
+ if(hint)hint.textContent='Dotknij kotary lub poczekaj 3 sekundy';
+ if(manualRequested){reveal(overlay);return}
+ if(!autoTimer){
+  const elapsed=Math.max(0,performance.now()-cycleStartedAt);
+  const remaining=Math.max(0,3000-elapsed);
+  autoTimer=setTimeout(()=>reveal(overlay),remaining);
+ }
 }
 
 function arm(){
- if(handledCycle===cycle||!isReady())return;
- handledCycle=cycle;
- cleanup();
+ if(armedCycle===cycle||!stageVisible())return;
+ armedCycle=cycle;
+ clearTimers();
+ panel.querySelector('.h3-curtain-overlay')?.remove();
+ panel.querySelector('.h3-confetti-layer')?.remove();
+ panel.classList.remove('h3-reveal-opening');
  panel.classList.add('h3-reveal-stage');
  const overlay=makeCurtains();
  panel.appendChild(overlay);
- const go=()=>reveal(overlay);
- overlay.addEventListener('click',go,{once:true});
- overlay.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}},{once:true});
- autoTimer=setTimeout(go,3000);
+ const requestReveal=()=>{manualRequested=true;if(winnersReady())reveal(overlay);else refreshOverlay(overlay)};
+ overlay.addEventListener('click',requestReveal);
+ overlay.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();requestReveal()}});
+ refreshOverlay(overlay);
 }
 
 function beginCycle(){
  cycle++;
- handledCycle=-1;
+ armedCycle=-1;
+ cycleStartedAt=performance.now();
+ manualRequested=false;
  cleanup();
- setTimeout(arm,40);
+ arm();
 }
 
-const observer=new MutationObserver(()=>arm());
-observer.observe(panel,{attributes:true,attributeFilter:['hidden']});
-observer.observe(podium,{childList:true});
-contestTab.addEventListener('click',beginCycle);
+new MutationObserver(()=>{
+ if(stageVisible())arm();
+ else cleanup();
+}).observe(panel,{attributes:true,attributeFilter:['hidden']});
+
+new MutationObserver(()=>{
+ const overlay=panel.querySelector('.h3-curtain-overlay');
+ if(overlay)refreshOverlay(overlay);
+ else if(stageVisible())arm();
+}).observe(podium,{childList:true,subtree:true});
+
+new MutationObserver(()=>{
+ if(contestView.hidden)cleanup();
+ else beginCycle();
+}).observe(contestView,{attributes:true,attributeFilter:['hidden']});
 
 if(!contestView.hidden)beginCycle();
-window.addEventListener('pageshow',()=>{if(!contestView.hidden&&panel.hidden===false)beginCycle()});
-window.addEventListener('pagehide',()=>{observer.disconnect();cleanup()},{once:true});
+window.addEventListener('pageshow',()=>{if(!contestView.hidden)beginCycle()});
+window.addEventListener('pagehide',cleanup,{once:true});
 })();
