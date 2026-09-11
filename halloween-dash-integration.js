@@ -31,12 +31,16 @@ function addTile(){
 async function openDash(){
   stop();
   list.hidden=true;detail.hidden=false;detail.dataset.currentId=DASH_ID;
-  detail.innerHTML='<button type="button" class="dash-back other-back-look">← Wróć</button><div class="other-detail dash-game-detail"><div class="other-detail-head dash-game-head"><span class="other-detail-icon">🎃</span><h2>Halloween Dash</h2><button type="button" class="dash-fullscreen-button" aria-label="Włącz pełny ekran">⛶</button></div><div id="halloweenDashHost"><div class="other-soon">Uruchamianie gry...</div></div></div>';
+  detail.innerHTML='<button type="button" class="other-back dash-back">← Wróć</button><div class="other-detail dash-game-detail"><div class="other-detail-head dash-game-head"><span class="other-detail-icon">🎃</span><h2>Halloween Dash</h2><button type="button" class="dash-fullscreen-button" aria-label="Włącz pełny ekran">⛶</button></div><div id="halloweenDashHost"><div class="other-soon">Uruchamianie gry...</div></div></div>';
   try{
     await ensureAssets();
     if(detail.dataset.currentId!==DASH_ID)return;
     window.H3HalloweenDash?.mount?.(detail.querySelector('#halloweenDashHost'));
     detail.querySelector('.dash-fullscreen-button')?.addEventListener('click',()=>window.H3HalloweenDash?.toggleFullscreen?.());
+    const stage=detail.querySelector('.dash-stage');
+    if(stage&&!stage.querySelector('.dash-exit-fs')){
+      const close=document.createElement('button');close.type='button';close.className='dash-exit-fs';close.setAttribute('aria-label','Wyłącz pełny ekran');close.textContent='✕';close.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();window.H3HalloweenDash?.toggleFullscreen?.()});stage.appendChild(close);
+    }
   }catch(e){
     console.warn(e);
     const host=detail.querySelector('#halloweenDashHost');if(host)host.innerHTML='<div class="other-soon">Nie udało się uruchomić gry.</div>';
