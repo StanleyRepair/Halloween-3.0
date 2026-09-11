@@ -4,7 +4,7 @@ const W=540,BEST='h3_pumpkin_blaster_best',LANES=[90,270,450],clamp=(v,a,b)=>Mat
 const rewards=[{k:'dmg',i:'🔥',t:'DMG +1'},{k:'rate',i:'⚡',t:'SZYBKOŚĆ'},{k:'multi',i:'🔱',t:'+1 POCISK'},{k:'pts',i:'🍬',t:'+100'}];
 function mount(host){
   unmount();
-  host.innerHTML='<div class="blaster-shell"><div class="blaster-hud"><div><span>Wynik</span><strong class="blaster-score">0</strong></div><div><span>Fala</span><strong class="blaster-wave">1</strong></div><div><span>Rekord</span><strong class="blaster-best">0</strong></div></div><div class="blaster-stage"><canvas class="blaster-canvas" width="540" height="900"></canvas><button class="blaster-exit-fs" type="button">✕</button><div class="blaster-overlay"><div class="blaster-card"><h3>🎃 Pumpkin Blaster</h3><p>Przesuwaj łowcę w lewo i prawo. Strzela automatycznie. Teraz barykady lecą seriami, więc wybieraj przejście szybko.</p><button class="blaster-start" type="button">START</button></div></div></div><div class="blaster-tip">Przeciągaj palcem między torami. Kolejne rzędy nadlatują zanim poprzedni zniknie.</div></div>';
+  host.innerHTML='<div class="blaster-shell"><div class="blaster-hud"><div><span>Wynik</span><strong class="blaster-score">0</strong></div><div><span>Fala</span><strong class="blaster-wave">1</strong></div><div><span>Rekord</span><strong class="blaster-best">0</strong></div></div><div class="blaster-stage"><canvas class="blaster-canvas" width="540" height="900"></canvas><button class="blaster-exit-fs" type="button">✕</button><div class="blaster-overlay"><div class="blaster-card"><h3>🎃 Pumpkin Blaster</h3><p>Przesuwaj łowcę w lewo i prawo. Barykady pojawiają się losowo na jednym, dwóch albo czasem trzech torach.</p><button class="blaster-start" type="button">START</button></div></div></div><div class="blaster-tip">Układ przeszkód jest losowy. Nie każdy rząd zajmuje wszystkie trzy tory.</div></div>';
   const cv=host.querySelector('canvas'),ctx=cv.getContext('2d',{alpha:false}),ov=host.querySelector('.blaster-overlay'),card=host.querySelector('.blaster-card'),startBtn=host.querySelector('.blaster-start'),scoreEl=host.querySelector('.blaster-score'),waveEl=host.querySelector('.blaster-wave'),bestEl=host.querySelector('.blaster-best'),exitBtn=host.querySelector('.blaster-exit-fs');
   let H=900,scale=1,best=Number(localStorage.getItem(BEST)||0),score=0,wave=1,nextWave=1,rows=[],spawnClock=0,bullets=[],parts=[],damage=1,delay=.17,multi=1,fire=0,x=270,target=270,running=false,raf=0,last=0,drag=false,full=false,pushed=false,ro=null;
   bestEl.textContent=best;
@@ -12,23 +12,31 @@ function mount(host){
   function fit(){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);cv.width=Math.max(1,Math.round(r.width*d));cv.height=Math.max(1,Math.round(r.height*d));scale=cv.width/W;H=cv.height/scale;ctx.setTransform(scale,0,0,scale,0,0);if(!running)draw()}
   ro=new ResizeObserver(fit);ro.observe(cv);fit();
   function hud(){scoreEl.textContent=Math.floor(score);waveEl.textContent=wave;bestEl.textContent=best}
-  function reward(i,w){let pool=w<2?rewards.filter(r=>r.k!=='multi'):rewards;let r=pool[Math.floor(Math.random()*pool.length)];if(i===1&&w%4===0)r=rewards[2];return {...r}}
-  function rowSpeed(w){return Math.min(220,115+w*3.6)}
-  function spawnDelay(w){return Math.max(.78,1.28-w*.018)}
+  function reward(i,w){let pool=w<2?rewards.filter(r=>r.k!=='multi'):rewards;let r=pool[Math.floor(Math.random()*pool.length)];if(i===1&&w%5===0)r=rewards[2];return {...r}}
+  function rowSpeed(w){return Math.min(170,90+w*2.4)}
+  function spawnDelay(w){const lo=Math.max(2.35,3.2-w*.025),hi=Math.max(3.15,4.45-w*.02);return rnd(lo,hi)}
+  function laneCount(w,boss){if(boss)return 3;const r=Math.random();if(r<.5)return 1;if(r<.9)return 2;return 3}
   function addRow(){
-    const w=nextWave++,base=7+w*2.35,easy=Math.floor(Math.random()*3),boss=w%6===0,mults=boss?[1.35,1.5,1.68]:[1.02,1.17,1.3];
-    const row={id:w,w,y:-90,speed:rowSpeed(w),boss,b:LANES.map((lx,i)=>{const factor=i===easy?(boss?0.78:0.5):mults[i],hp=Math.max(3,Math.round(base*factor));return{x:lx,hp,max:hp,r:reward(i,w),broken:false,taken:false,flash:0}})};
-    rows.push(row);wave=Math.max(wave,w);spawnClock=spawnDelay(w);hud();
+    const w=nextWave++,base=7+w*2.15,boss=w%7===0,count=laneCount(w,boss),laneIds=[0,1,2].sort(()=>Math.random()-.5).slice(0,count),easy=laneIds[Math.floor(Math.random()*laneIds.length)];
+    const barriers=laneIds.map((lane,pos)=>{
+      let factor;
+      if(boss)factor=lane===easy?.92:rnd(1.18,1.5);
+      else if(lane===easy)factor=rnd(.48,.65);
+      else factor=rnd(.88,1.18);
+      const hp=Math.max(3,Math.round(base*factor));
+      return{x:LANES[lane],hp,max:hp,r:reward(pos,w),broken:false,taken:false,flash:0}
+    });
+    rows.push({id:w,w,y:-90,speed:rowSpeed(w),boss,b:barriers});wave=Math.max(wave,w);spawnClock=spawnDelay(w);hud();
   }
   function reset(){score=0;wave=1;nextWave=1;rows=[];spawnClock=0;bullets=[];parts=[];damage=1;delay=.17;multi=1;fire=0;x=target=270;addRow();hud();draw()}
   function start(){reset();running=true;ov.hidden=true;last=performance.now();window.H3Analytics?.track?.('pumpkin_blaster_start').catch?.(()=>{});cancelAnimationFrame(raf);raf=requestAnimationFrame(loop)}
-  function burst(px,yy,c,n=12){for(let i=0;i<n;i++)parts.push({x:px,y:yy,vx:rnd(-150,150),vy:rnd(-230,80),life:rnd(.25,.65),r:rnd(2,5),c})}
-  function finish(){if(!running)return;running=false;cancelAnimationFrame(raf);const s=Math.floor(score),nr=s>best;if(nr){best=s;localStorage.setItem(BEST,String(best))}burst(x,py()-15,'#ff6f2a',30);draw();card.querySelector('h3').textContent=nr?'🏆 Nowy rekord!':'💀 Koniec gry';card.querySelector('p').innerHTML=`Wynik: <strong>${s}</strong><br>Fala: <strong>${wave}</strong><br>Rekord: <strong>${best}</strong>`;startBtn.textContent='SPRÓBUJ PONOWNIE';ov.hidden=false;hud();window.H3Analytics?.track?.('pumpkin_blaster_over',{score:s,best,wave,damage,multishot:multi}).catch?.(()=>{});try{navigator.vibrate?.([45,30,80])}catch{}}
-  function shoot(){for(let i=0;i<multi;i++){const o=(i-(multi-1)/2)*15;bullets.push({x:x+o,y:py()-54,vy:-790,d:damage})}}
-  function take(b,r){if(b.taken)return;b.taken=true;if(b.r.k==='dmg')damage=Math.min(10,damage+1);else if(b.r.k==='rate')delay=Math.max(.065,delay*.85);else if(b.r.k==='multi')multi=Math.min(6,multi+1);else score+=100;score+=35;burst(b.x,r.y,'#ffc56c',18);try{navigator.vibrate?.(16)}catch{}}
+  function burst(px,yy,c,n=12){const amount=Math.min(n,18);for(let i=0;i<amount;i++)parts.push({x:px,y:yy,vx:rnd(-150,150),vy:rnd(-230,80),life:rnd(.25,.6),r:rnd(2,5),c});if(parts.length>90)parts.splice(0,parts.length-90)}
+  function finish(){if(!running)return;running=false;cancelAnimationFrame(raf);const s=Math.floor(score),nr=s>best;if(nr){best=s;localStorage.setItem(BEST,String(best))}burst(x,py()-15,'#ff6f2a',18);draw();card.querySelector('h3').textContent=nr?'🏆 Nowy rekord!':'💀 Koniec gry';card.querySelector('p').innerHTML=`Wynik: <strong>${s}</strong><br>Fala: <strong>${wave}</strong><br>Rekord: <strong>${best}</strong>`;startBtn.textContent='SPRÓBUJ PONOWNIE';ov.hidden=false;hud();window.H3Analytics?.track?.('pumpkin_blaster_over',{score:s,best,wave,damage,multishot:multi}).catch?.(()=>{});try{navigator.vibrate?.([45,30,80])}catch{}}
+  function shoot(){for(let i=0;i<multi;i++){const o=(i-(multi-1)/2)*15;bullets.push({x:x+o,y:py()-54,vy:-790,d:damage})}if(bullets.length>110)bullets.splice(0,bullets.length-110)}
+  function take(b,r){if(b.taken)return;b.taken=true;if(b.r.k==='dmg')damage=Math.min(10,damage+1);else if(b.r.k==='rate')delay=Math.max(.065,delay*.85);else if(b.r.k==='multi')multi=Math.min(6,multi+1);else score+=100;score+=35;burst(b.x,r.y,'#ffc56c',12);try{navigator.vibrate?.(16)}catch{}}
   function update(dt){
     x+=(target-x)*Math.min(1,dt*14);fire-=dt;if(fire<=0){shoot();fire+=delay}
-    spawnClock-=dt;if(spawnClock<=0)addRow();
+    spawnClock-=dt;if(spawnClock<=0){if(rows.length<3)addRow();else spawnClock=.55}
     for(const r of rows){r.y+=r.speed*dt;r.b.forEach(b=>b.flash=Math.max(0,b.flash-dt*5))}
     bullets.forEach(p=>p.y+=p.vy*dt);
     const hitRows=[...rows].sort((a,b)=>b.y-a.y);
@@ -39,8 +47,8 @@ function mount(host){
         for(const b of r.b){
           if(b.broken)continue;
           if(Math.abs(p.x-b.x)<70){
-            b.hp=Math.max(0,b.hp-p.d);b.flash=1;score+=p.d*2;burst(p.x,p.y,'#ff9a43',3);hit=true;
-            if(b.hp<=0){b.broken=true;score+=38+r.w*3;burst(b.x,r.y,'#ff6b27',18);try{navigator.vibrate?.(12)}catch{}}
+            b.hp=Math.max(0,b.hp-p.d);b.flash=1;score+=p.d*2;burst(p.x,p.y,'#ff9a43',2);hit=true;
+            if(b.hp<=0){b.broken=true;score+=38+r.w*3;burst(b.x,r.y,'#ff6b27',12);try{navigator.vibrate?.(12)}catch{}}
             break;
           }
         }
@@ -54,15 +62,13 @@ function mount(host){
         for(const b of r.b){
           if(Math.abs(x-b.x)<62){
             if(!b.broken){finish();return}
-            take(b,r);
+            take(b,r)
           }
         }
       }
     }
-    let passed=0;
-    rows=rows.filter(r=>{if(r.y>H+95){passed++;return false}return true});
-    if(passed)score+=passed*55;
-    for(const p of parts){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=320*dt;p.life-=dt}parts=parts.filter(p=>p.life>0);hud();
+    let passed=0;rows=rows.filter(r=>{if(r.y>H+95){passed++;return false}return true});if(passed)score+=passed*55;
+    for(const p of parts){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=320*dt;p.life-=dt}parts=parts.filter(p=>p.life>0);hud()
   }
   function rr(a,b,c,d,r){ctx.beginPath();ctx.roundRect?ctx.roundRect(a,b,c,d,r):ctx.rect(a,b,c,d)}
   function bg(){
@@ -77,7 +83,7 @@ function mount(host){
   async function enter(){const box=host.closest('.blaster-game-detail');if(!box)return;full=true;box.classList.add('blaster-game-fullscreen-box');document.body.classList.add('blaster-game-fullscreen');if(!history.state?.h3BlasterFullscreen){history.pushState({...history.state,h3BlasterFullscreen:true},'',location.href);pushed=true}try{if(!document.fullscreenElement&&box.requestFullscreen)await box.requestFullscreen({navigationUI:'hide'})}catch{}try{await screen.orientation?.lock?.('portrait')}catch{}setTimeout(fit,100)}
   async function exit(fromPop=false){if(!full)return;full=false;host.closest('.blaster-game-detail')?.classList.remove('blaster-game-fullscreen-box');document.body.classList.remove('blaster-game-fullscreen');try{screen.orientation?.unlock?.()}catch{}try{if(document.fullscreenElement)await document.exitFullscreen?.()}catch{}if(!fromPop&&pushed&&history.state?.h3BlasterFullscreen){pushed=false;history.back()}else pushed=false;setTimeout(fit,80)}
   const toggle=()=>full?exit():enter(),pop=()=>{if(full)exit(true)},resize=()=>setTimeout(fit,80);exitBtn.onclick=e=>{e.preventDefault();e.stopPropagation();exit()};window.addEventListener('popstate',pop);window.addEventListener('resize',resize);window.addEventListener('orientationchange',resize);reset();
-  game={toggle,stop(){running=false;cancelAnimationFrame(raf);ro?.disconnect();window.removeEventListener('keydown',key);window.removeEventListener('popstate',pop);window.removeEventListener('resize',resize);window.removeEventListener('orientationchange',resize);exit(true)}};
+  game={toggle,stop(){running=false;cancelAnimationFrame(raf);ro?.disconnect();window.removeEventListener('keydown',key);window.removeEventListener('popstate',pop);window.removeEventListener('resize',resize);window.removeEventListener('orientationchange',resize);exit(true)}}
 }
 function unmount(){if(game){game.stop();game=null}}
 window.H3PumpkinBlaster={mount,unmount,toggleFullscreen(){game?.toggle?.()}};
