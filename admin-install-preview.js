@@ -3,7 +3,7 @@ const dashboard=document.getElementById('dashboard'),menu=document.querySelector
 const variants={
   ios13mini:{label:'iPhone 13 mini • Safari',width:375,desc:'Rodzina 375 × 812. Instrukcja używa ikony Menu strony po lewej stronie paska adresu, tak jak na 13 mini.'},
   ios14:{label:'iPhone 14 • Safari',width:390,desc:'Rodzina 390 × 844. Instrukcja korzysta z bezpośredniego przycisku Udostępnij na dolnym pasku, z awaryjną ścieżką przez Menu strony.'},
-  ios16pro:{label:'iPhone 16 Pro • Safari',width:402,desc:'Rodzina 402 × 874. Większy ekran i wariant instrukcji z bezpośrednim Udostępnij.'},
+  ios16pro:{label:'iPhone 16 Pro • Safari',width:402,desc:'Rodzina 402 × 874. Osobny wariant Safari: najpierw menu •••, następnie Udostępnij i Do ekranu głównego.'},
   iosmax:{label:'iPhone Plus / Pro Max • Safari',width:440,desc:'Duże iPhone. Instrukcja jest dopasowana do szerokiego ekranu i zachowuje ścieżkę awaryjną.'},
   'ios-ipad':{label:'iPad • Safari',width:820,desc:'Osobny wariant instrukcji dla Safari na iPadzie.'},
   'ios-messenger':{label:'iOS • Messenger',width:390,desc:'Przeglądarka wbudowana w Messenger. Najpierw użytkownik ma wyjść do zewnętrznej przeglądarki.'},
