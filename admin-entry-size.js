@@ -1,4 +1,11 @@
 (()=>{
+  if(!document.querySelector('script[data-photo-source-picker]')){
+    const s=document.createElement('script');
+    s.src='photo-source-picker.js?v=1';
+    s.dataset.photoSourcePicker='1';
+    document.body.appendChild(s);
+  }
+
   if(typeof renderDashboard!=='function')return;
 
   function formatFileSize(bytes){
