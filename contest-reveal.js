@@ -55,7 +55,6 @@ function reveal(overlay){
  panel.classList.add('h3-reveal-opening','h3-revealed');
  setTimeout(confetti,reduceMotion?0:320);
  removeTimer=setTimeout(()=>{
-  overlay.remove();
   panel.classList.remove('h3-reveal-opening');
   panel.classList.add('h3-reveal-stage','h3-revealed');
  },reduceMotion?180:1650);
