@@ -17,7 +17,7 @@ function mount(host){
   function spawnDelay(w){return Math.max(.78,1.28-w*.018)}
   function addRow(){
     const w=nextWave++,base=7+w*2.35,easy=Math.floor(Math.random()*3),boss=w%6===0,mults=boss?[1.35,1.5,1.68]:[1.02,1.17,1.3];
-    const row={id:w,w,y:-90,speed:rowSpeed(w),boss,b:LANES.map((lx,i)=>{const factor=i===easy?(boss?.78:.5):mults[i],hp=Math.max(3,Math.round(base*factor));return{x:lx,hp,max:hp,r:reward(i,w),broken:false,taken:false,flash:0}})};
+    const row={id:w,w,y:-90,speed:rowSpeed(w),boss,b:LANES.map((lx,i)=>{const factor=i===easy?(boss?0.78:0.5):mults[i],hp=Math.max(3,Math.round(base*factor));return{x:lx,hp,max:hp,r:reward(i,w),broken:false,taken:false,flash:0}})};
     rows.push(row);wave=Math.max(wave,w);spawnClock=spawnDelay(w);hud();
   }
   function reset(){score=0;wave=1;nextWave=1;rows=[];spawnClock=0;bullets=[];parts=[];damage=1;delay=.17;multi=1;fire=0;x=target=270;addRow();hud();draw()}
