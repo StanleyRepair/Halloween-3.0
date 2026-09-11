@@ -31,7 +31,7 @@ function addTile(){
 async function openRitual(){
   stop();
   list.hidden=true;detail.hidden=false;detail.dataset.currentId=RITUAL_ID;
-  detail.innerHTML='<button type="button" class="ritual-back other-back-look">← Wróć</button><div class="other-detail ritual-game-detail"><div class="other-detail-head ritual-game-head"><span class="other-detail-icon">🔮</span><h2>Mroczny rytuał</h2><button type="button" class="ritual-fullscreen-button" aria-label="Włącz pełny ekran">⛶</button></div><div id="darkRitualHost"><div class="other-soon">Uruchamianie gry...</div></div></div>';
+  detail.innerHTML='<button type="button" class="other-back ritual-back">← Wróć</button><div class="other-detail ritual-game-detail"><div class="other-detail-head ritual-game-head"><span class="other-detail-icon">🔮</span><h2>Mroczny rytuał</h2><button type="button" class="ritual-fullscreen-button" aria-label="Włącz pełny ekran">⛶</button></div><div id="darkRitualHost"><div class="other-soon">Uruchamianie gry...</div></div></div>';
   try{
     await ensureAssets();
     if(detail.dataset.currentId!==RITUAL_ID)return;
