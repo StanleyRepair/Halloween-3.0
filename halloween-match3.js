@@ -1,21 +1,45 @@
 (()=>{
 let current=null;
 const ROWS=8,COLS=8,SIZE=ROWS*COLS,GAME_MS=60000,BEST_KEY='h3_halloween_match_best';
+const BASE_COUNT=6,BOMB=6,DYNAMITE=7;
 const PIECES=[
   {key:'pumpkin',icon:'🎃',label:'Dynia'},
   {key:'ghost',icon:'👻',label:'Duch'},
   {key:'skull',icon:'💀',label:'Czaszka'},
   {key:'bat',icon:'🦇',label:'Nietoperz'},
   {key:'spider',icon:'🕷️',label:'Pająk'},
-  {key:'candy',icon:'🍬',label:'Cukierek'}
+  {key:'candy',icon:'🍬',label:'Cukierek'},
+  {key:'bomb',icon:'💣',label:'Bomba',special:'bomb'},
+  {key:'dynamite',icon:'🧨',label:'Dynamit',special:'dynamite'}
 ];
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
-const randType=()=>Math.floor(Math.random()*PIECES.length);
+const randType=()=>Math.floor(Math.random()*BASE_COUNT);
+const isBase=v=>Number.isInteger(v)&&v>=0&&v<BASE_COUNT;
+const isSpecial=v=>v===BOMB||v===DYNAMITE;
+
+function ensureSpecialStyles(){
+  if(document.getElementById('h3MatchSpecialStyles'))return;
+  const style=document.createElement('style');
+  style.id='h3MatchSpecialStyles';
+  style.textContent=`
+    .match3-cell[data-type="bomb"]{background:radial-gradient(circle at 38% 30%,#503025 0,#24120d 48%,#090504 100%);border-color:#b65b31;box-shadow:inset 0 0 16px rgba(255,100,35,.16)}
+    .match3-cell[data-type="dynamite"]{background:radial-gradient(circle at 38% 30%,#5b251c 0,#2a0d09 48%,#090403 100%);border-color:#e06a2c;box-shadow:inset 0 0 18px rgba(255,72,20,.2)}
+    .match3-cell.is-special span{animation:match3-special-pulse 1s ease-in-out infinite alternate;filter:drop-shadow(0 0 7px rgba(255,110,45,.55)) drop-shadow(0 4px 4px rgba(0,0,0,.42))}
+    .match3-cell.is-blast{animation:match3-blast .28s ease both;z-index:5}
+    .match3-cell.is-blast span{animation:match3-blast-piece .28s ease both!important}
+    @keyframes match3-special-pulse{from{transform:scale(.94) rotate(-2deg)}to{transform:scale(1.05) rotate(2deg)}}
+    @keyframes match3-blast{0%{filter:brightness(1)}40%{filter:brightness(2.2);box-shadow:0 0 22px rgba(255,90,20,.95)}100%{filter:brightness(.7)}}
+    @keyframes match3-blast-piece{0%{transform:scale(1);opacity:1}55%{transform:scale(1.28) rotate(7deg);opacity:1}100%{transform:scale(.05) rotate(18deg);opacity:0}}
+    @media(prefers-reduced-motion:reduce){.match3-cell.is-special span,.match3-cell.is-blast,.match3-cell.is-blast span{animation:none!important}}
+  `;
+  document.head.appendChild(style);
+}
 
 function mount(host){
   unmount();
   if(!host)return;
-  host.innerHTML=`<div class="match3-game"><div class="match3-stats"><div><span>Czas</span><strong class="match3-time">60</strong></div><div><span>Wynik</span><strong class="match3-score">0</strong></div><div><span>Rekord</span><strong class="match3-best">0</strong></div></div><div class="match3-status" aria-live="polite">Połącz 3 lub więcej symboli</div><div class="match3-stage"><div class="match3-board" role="grid" aria-label="Plansza Halloween Match"></div><div class="match3-overlay"><div class="match3-card"><div class="match3-title">🎃 Halloween Match</div><p>Zamieniaj sąsiednie symbole miejscami. Połącz co najmniej 3 takie same w rzędzie lub kolumnie.</p><button type="button" class="match3-start">START</button></div></div></div><div class="match3-tip">Przesuń palcem symbol w wybraną stronę albo stuknij dwa sąsiednie pola.</div></div>`;
+  ensureSpecialStyles();
+  host.innerHTML=`<div class="match3-game"><div class="match3-stats"><div><span>Czas</span><strong class="match3-time">60</strong></div><div><span>Wynik</span><strong class="match3-score">0</strong></div><div><span>Rekord</span><strong class="match3-best">0</strong></div></div><div class="match3-status" aria-live="polite">Połącz 3 lub więcej symboli</div><div class="match3-stage"><div class="match3-board" role="grid" aria-label="Plansza Halloween Match"></div><div class="match3-overlay"><div class="match3-card"><div class="match3-title">🎃 Halloween Match</div><p>Zamieniaj sąsiednie symbole miejscami. Połącz 4, aby stworzyć bombę 💣, albo 5, aby stworzyć dynamit 🧨.</p><button type="button" class="match3-start">START</button></div></div></div><div class="match3-tip">3 symbole znikają • 4 tworzą 💣 bombę • 5 lub więcej tworzy 🧨 dynamit</div></div>`;
 
   const boardEl=host.querySelector('.match3-board'),overlay=host.querySelector('.match3-overlay'),card=host.querySelector('.match3-card'),title=host.querySelector('.match3-title'),startBtn=host.querySelector('.match3-start'),scoreEl=host.querySelector('.match3-score'),timeEl=host.querySelector('.match3-time'),bestEl=host.querySelector('.match3-best'),statusEl=host.querySelector('.match3-status');
   let board=[],running=false,busy=false,score=0,best=Number(localStorage.getItem(BEST_KEY)||0),selected=-1,raf=0,endAt=0,timeUp=false,pointer=null,fullscreen=false,pushedState=false;
@@ -27,26 +51,41 @@ function mount(host){
   const adjacent=(a,b)=>a>=0&&b>=0&&Math.abs(row(a)-row(b))+Math.abs(col(a)-col(b))===1;
   function swap(a,b){const t=board[a];board[a]=board[b];board[b]=t}
 
-  function findMatches(){
-    const set=new Set();
+  function findMatchGroups(){
+    const groups=[];
     for(let r=0;r<ROWS;r++){
       let start=0;
       for(let c=1;c<=COLS;c++){
-        const prev=board[index(r,c-1)],cur=c<COLS?board[index(r,c)]:-2;
-        if(cur!==prev){if(prev!==null&&c-start>=3)for(let k=start;k<c;k++)set.add(index(r,k));start=c}
+        const prev=board[index(r,c-1)],cur=c<COLS?board[index(r,c)]:null;
+        if(cur!==prev){
+          const len=c-start;
+          if(isBase(prev)&&len>=3)groups.push(Array.from({length:len},(_,k)=>index(r,start+k)));
+          start=c;
+        }
       }
     }
     for(let c=0;c<COLS;c++){
       let start=0;
       for(let r=1;r<=ROWS;r++){
-        const prev=board[index(r-1,c)],cur=r<ROWS?board[index(r,c)]:-2;
-        if(cur!==prev){if(prev!==null&&r-start>=3)for(let k=start;k<r;k++)set.add(index(k,c));start=r}
+        const prev=board[index(r-1,c)],cur=r<ROWS?board[index(r,c)]:null;
+        if(cur!==prev){
+          const len=r-start;
+          if(isBase(prev)&&len>=3)groups.push(Array.from({length:len},(_,k)=>index(start+k,c)));
+          start=r;
+        }
       }
     }
+    return groups;
+  }
+
+  function findMatches(){
+    const set=new Set();
+    for(const group of findMatchGroups())for(const i of group)set.add(i);
     return set;
   }
 
   function hasMove(){
+    if(board.some(isSpecial))return true;
     for(let i=0;i<SIZE;i++){
       const r=row(i),c=col(i);
       for(const j of [c<COLS-1?i+1:-1,r<ROWS-1?i+COLS:-1]){
@@ -60,7 +99,7 @@ function mount(host){
     for(let attempt=0;attempt<80;attempt++){
       const b=Array(SIZE).fill(0);
       for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-        let choices=PIECES.map((_,i)=>i);
+        let choices=Array.from({length:BASE_COUNT},(_,i)=>i);
         if(c>=2&&b[index(r,c-1)]===b[index(r,c-2)])choices=choices.filter(x=>x!==b[index(r,c-1)]);
         if(r>=2&&b[index(r-1,c)]===b[index(r-2,c)])choices=choices.filter(x=>x!==b[index(r-1,c)]);
         b[index(r,c)]=choices[Math.floor(Math.random()*choices.length)];
@@ -79,11 +118,14 @@ function mount(host){
       btn.type='button';btn.className='match3-cell';btn.dataset.index=String(i);btn.setAttribute('role','gridcell');
       if(i===selected)btn.classList.add('is-selected');
       if(marked.has(i)&&mode==='pop')btn.classList.add('is-pop');
+      if(marked.has(i)&&mode==='blast')btn.classList.add('is-blast');
       if(p){
         btn.dataset.type=p.key;btn.setAttribute('aria-label',p.label);
+        if(p.special)btn.classList.add('is-special');
         const span=document.createElement('span');span.textContent=p.icon;
         const fallRows=falls?.[i]||0;
         if(fallRows>0){
+          span.classList.remove('is-falling');
           span.classList.add('is-falling');
           span.style.setProperty('--fall-y',`${-Math.round(fallRows*step)}px`);
           span.style.setProperty('--fall-duration',`${Math.min(520,260+fallRows*42)}ms`);
@@ -108,16 +150,8 @@ function mount(host){
     cellA.style.zIndex='5';cellB.style.zIndex='6';cellA.style.willChange='transform';cellB.style.willChange='transform';
     const easing='cubic-bezier(.2,.82,.24,1)';
     const opts={duration,easing,fill:'forwards'};
-    const animA=cellA.animate([
-      {transform:'translate3d(0,0,0) scale(1)',offset:0},
-      {transform:`translate3d(${dx*.52}px,${dy*.52}px,0) scale(.96)`,offset:.52},
-      {transform:`translate3d(${dx}px,${dy}px,0) scale(1)`,offset:1}
-    ],opts);
-    const animB=cellB.animate([
-      {transform:'translate3d(0,0,0) scale(1)',offset:0},
-      {transform:`translate3d(${-dx*.52}px,${-dy*.52}px,0) scale(.96)`,offset:.52},
-      {transform:`translate3d(${-dx}px,${-dy}px,0) scale(1)`,offset:1}
-    ],opts);
+    const animA=cellA.animate([{transform:'translate3d(0,0,0) scale(1)',offset:0},{transform:`translate3d(${dx*.52}px,${dy*.52}px,0) scale(.96)`,offset:.52},{transform:`translate3d(${dx}px,${dy}px,0) scale(1)`,offset:1}],opts);
+    const animB=cellB.animate([{transform:'translate3d(0,0,0) scale(1)',offset:0},{transform:`translate3d(${-dx*.52}px,${-dy*.52}px,0) scale(.96)`,offset:.52},{transform:`translate3d(${-dx}px,${-dy}px,0) scale(1)`,offset:1}],opts);
     try{await Promise.all([animA.finished,animB.finished])}catch{}
   }
 
@@ -138,18 +172,82 @@ function mount(host){
     return falls;
   }
 
-  async function resolveMatches(comboStart=1){
-    let combo=comboStart;
+  function chooseSpecials(groups,preferred=-1){
+    const planned=new Map();
+    for(const group of groups){
+      if(group.length<4)continue;
+      const kind=group.length>=5?DYNAMITE:BOMB;
+      const middle=group[Math.floor(group.length/2)];
+      const candidates=[];
+      if(group.includes(preferred))candidates.push(preferred);
+      candidates.push(middle,...group);
+      let chosen=candidates.find(i=>!planned.has(i));
+      if(chosen===undefined){
+        chosen=middle;
+        if((planned.get(chosen)||BOMB)<kind)planned.set(chosen,kind);
+        continue;
+      }
+      planned.set(chosen,kind);
+    }
+    return planned;
+  }
+
+  function blastSetFromSeeds(seeds){
+    const clear=new Set(),queue=[...seeds],seen=new Set();
+    while(queue.length){
+      const i=queue.shift();
+      if(i<0||i>=SIZE||seen.has(i)||!isSpecial(board[i]))continue;
+      seen.add(i);
+      const special=board[i];
+      const targets=[];
+      if(special===BOMB){
+        const rr=row(i),cc=col(i);
+        for(let r=Math.max(0,rr-1);r<=Math.min(ROWS-1,rr+1);r++)for(let c=Math.max(0,cc-1);c<=Math.min(COLS-1,cc+1);c++)targets.push(index(r,c));
+      }else{
+        const rr=row(i),cc=col(i);
+        for(let c=0;c<COLS;c++)targets.push(index(rr,c));
+        for(let r=0;r<ROWS;r++)targets.push(index(r,cc));
+      }
+      for(const t of targets){
+        clear.add(t);
+        if(isSpecial(board[t])&&!seen.has(t))queue.push(t);
+      }
+    }
+    return clear;
+  }
+
+  async function explodeSpecials(seeds,combo=1){
+    const clear=blastSetFromSeeds(seeds);
+    if(!clear.size)return;
+    const hasDynamite=[...seeds].some(i=>board[i]===DYNAMITE);
+    const gained=clear.size*15*combo;score+=gained;scoreEl.textContent=String(score);
+    statusEl.textContent=hasDynamite?`🧨 DYNAMIT! +${gained}`:`💣 BOOM! +${gained}`;
+    render(clear,'blast');try{navigator.vibrate?.(hasDynamite?[35,20,65]:[25,18,40])}catch{}
+    await wait(285);
+    for(const i of clear)board[i]=null;
+    const falls=collapseAndRefill();render(new Set(),'',falls);
+    const maxFall=Math.max(0,...falls);await wait(Math.min(620,315+maxFall*44));
+    await resolveMatches(combo+1,-1);
+  }
+
+  async function resolveMatches(comboStart=1,preferred=-1){
+    let combo=comboStart,first=true;
     while(running){
-      const matches=findMatches();
-      if(!matches.size)break;
-      const gained=matches.size*10*combo;score+=gained;scoreEl.textContent=String(score);statusEl.textContent=combo>1?`🔥 Combo x${combo}  +${gained}`:`✨ +${gained}`;
-      render(matches,'pop');try{navigator.vibrate?.(Math.min(35,10+combo*5))}catch{}
+      const groups=findMatchGroups();
+      if(!groups.length)break;
+      const matches=new Set();for(const g of groups)for(const i of g)matches.add(i);
+      const specials=chooseSpecials(groups,first?preferred:-1);
+      const toClear=new Set(matches);for(const i of specials.keys())toClear.delete(i);
+      const gained=matches.size*10*combo;score+=gained;scoreEl.textContent=String(score);
+      const madeDynamite=[...specials.values()].includes(DYNAMITE),madeBomb=[...specials.values()].includes(BOMB);
+      statusEl.textContent=madeDynamite?`🧨 Dynamit gotowy! +${gained}`:madeBomb?`💣 Bomba gotowa! +${gained}`:combo>1?`🔥 Combo x${combo}  +${gained}`:`✨ +${gained}`;
+      render(toClear,'pop');try{navigator.vibrate?.(Math.min(35,10+combo*5))}catch{}
       await wait(185);
-      for(const i of matches)board[i]=null;
+      for(const i of toClear)board[i]=null;
+      for(const [i,kind] of specials)board[i]=kind;
       const falls=collapseAndRefill();render(new Set(),'',falls);
       const maxFall=Math.max(0,...falls);await wait(Math.min(590,300+maxFall*44));
-      combo++;
+      combo++;first=false;
     }
     if(running&&!hasMove()){
       statusEl.textContent='🔀 Brak ruchów, tasuję planszę';await wait(250);makeBoard();render();
@@ -161,6 +259,12 @@ function mount(host){
     busy=true;selected=-1;
     await animateSwap(a,b,190);
     swap(a,b);render();
+    const specialSeeds=[a,b].filter(i=>isSpecial(board[i]));
+    if(specialSeeds.length){
+      await wait(35);
+      await explodeSpecials(specialSeeds,1);
+      busy=false;if(timeUp)finish();return;
+    }
     if(!findMatches().size){
       await wait(24);
       await animateSwap(a,b,165);
@@ -169,7 +273,7 @@ function mount(host){
       statusEl.textContent='Ten ruch nic nie łączy';busy=false;if(timeUp)finish();return;
     }
     await wait(45);
-    await resolveMatches(1);busy=false;if(timeUp)finish();
+    await resolveMatches(1,b);busy=false;if(timeUp)finish();
   }
 
   function selectOrSwap(i){
@@ -188,7 +292,7 @@ function mount(host){
   }
 
   function reset(){
-    cancelAnimationFrame(raf);score=0;selected=-1;busy=false;timeUp=false;scoreEl.textContent='0';timeEl.textContent='60';statusEl.textContent='Połącz 3 lub więcej symboli';makeBoard();render();title.textContent='🎃 Halloween Match';card.querySelector('p').textContent='Zamieniaj sąsiednie symbole miejscami. Połącz co najmniej 3 takie same w rzędzie lub kolumnie.';startBtn.textContent='START';
+    cancelAnimationFrame(raf);score=0;selected=-1;busy=false;timeUp=false;scoreEl.textContent='0';timeEl.textContent='60';statusEl.textContent='Połącz 3 lub więcej symboli';makeBoard();render();title.textContent='🎃 Halloween Match';card.querySelector('p').textContent='Zamieniaj sąsiednie symbole miejscami. Połącz 4, aby stworzyć bombę 💣, albo 5, aby stworzyć dynamit 🧨.';startBtn.textContent='START';
   }
 
   function start(){reset();running=true;overlay.hidden=true;endAt=performance.now()+GAME_MS;window.H3Analytics?.track?.('halloween_match_start').catch?.(()=>{});raf=requestAnimationFrame(updateClock)}
