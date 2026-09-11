@@ -8,7 +8,7 @@ let cycle=0,armedCycle=-1,autoTimer=null,removeTimer=null,cycleStartedAt=0,manua
 const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 function clearTimers(){clearTimeout(autoTimer);clearTimeout(removeTimer);autoTimer=null;removeTimer=null}
-function cleanup(){clearTimers();panel.querySelector('.h3-curtain-overlay')?.remove();panel.querySelector('.h3-confetti-layer')?.remove();panel.classList.remove('h3-reveal-stage','h3-reveal-opening');manualRequested=false}
+function cleanup(){clearTimers();panel.querySelector('.h3-curtain-overlay')?.remove();panel.querySelector('.h3-confetti-layer')?.remove();panel.classList.remove('h3-reveal-stage','h3-reveal-opening','h3-revealed');manualRequested=false}
 function stageVisible(){return !panel.hidden&&!contestView.hidden}
 function winnersReady(){return podium.children.length>0}
 
@@ -52,9 +52,13 @@ function reveal(overlay){
  if(!overlay||overlay.classList.contains('h3-open')||!winnersReady())return;
  clearTimeout(autoTimer);autoTimer=null;
  overlay.classList.add('h3-open');
- panel.classList.add('h3-reveal-opening');
- setTimeout(confetti,reduceMotion?0:420);
- removeTimer=setTimeout(()=>{overlay.remove();panel.classList.remove('h3-reveal-stage','h3-reveal-opening')},reduceMotion?180:1650);
+ panel.classList.add('h3-reveal-opening','h3-revealed');
+ setTimeout(confetti,reduceMotion?0:320);
+ removeTimer=setTimeout(()=>{
+  overlay.remove();
+  panel.classList.remove('h3-reveal-opening');
+  panel.classList.add('h3-reveal-stage','h3-revealed');
+ },reduceMotion?180:1650);
 }
 
 function refreshOverlay(overlay){
@@ -84,7 +88,7 @@ function arm(){
  clearTimers();
  panel.querySelector('.h3-curtain-overlay')?.remove();
  panel.querySelector('.h3-confetti-layer')?.remove();
- panel.classList.remove('h3-reveal-opening');
+ panel.classList.remove('h3-reveal-opening','h3-revealed');
  panel.classList.add('h3-reveal-stage');
  const overlay=makeCurtains();
  panel.appendChild(overlay);
