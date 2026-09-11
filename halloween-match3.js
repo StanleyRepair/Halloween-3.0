@@ -17,14 +17,14 @@ function mount(host){
   if(!host)return;
   host.innerHTML=`<div class="match3-game"><div class="match3-stats"><div><span>Czas</span><strong class="match3-time">60</strong></div><div><span>Wynik</span><strong class="match3-score">0</strong></div><div><span>Rekord</span><strong class="match3-best">0</strong></div></div><div class="match3-status" aria-live="polite">Połącz 3 lub więcej symboli</div><div class="match3-stage"><div class="match3-board" role="grid" aria-label="Plansza Halloween Match"></div><div class="match3-overlay"><div class="match3-card"><div class="match3-title">🎃 Halloween Match</div><p>Zamieniaj sąsiednie symbole miejscami. Połącz co najmniej 3 takie same w rzędzie lub kolumnie.</p><button type="button" class="match3-start">START</button></div></div></div><div class="match3-tip">Przesuń palcem symbol w wybraną stronę albo stuknij dwa sąsiednie pola.</div></div>`;
 
-  const game=host.querySelector('.match3-game'),boardEl=host.querySelector('.match3-board'),overlay=host.querySelector('.match3-overlay'),card=host.querySelector('.match3-card'),title=host.querySelector('.match3-title'),startBtn=host.querySelector('.match3-start'),scoreEl=host.querySelector('.match3-score'),timeEl=host.querySelector('.match3-time'),bestEl=host.querySelector('.match3-best'),statusEl=host.querySelector('.match3-status');
+  const boardEl=host.querySelector('.match3-board'),overlay=host.querySelector('.match3-overlay'),card=host.querySelector('.match3-card'),title=host.querySelector('.match3-title'),startBtn=host.querySelector('.match3-start'),scoreEl=host.querySelector('.match3-score'),timeEl=host.querySelector('.match3-time'),bestEl=host.querySelector('.match3-best'),statusEl=host.querySelector('.match3-status');
   let board=[],running=false,busy=false,score=0,best=Number(localStorage.getItem(BEST_KEY)||0),selected=-1,raf=0,endAt=0,timeUp=false,pointer=null,fullscreen=false,pushedState=false;
   bestEl.textContent=String(best);
 
-  function index(r,c){return r*COLS+c}
-  function row(i){return Math.floor(i/COLS)}
-  function col(i){return i%COLS}
-  function adjacent(a,b){return a>=0&&b>=0&&Math.abs(row(a)-row(b))+Math.abs(col(a)-col(b))===1}
+  const index=(r,c)=>r*COLS+c;
+  const row=i=>Math.floor(i/COLS);
+  const col=i=>i%COLS;
+  const adjacent=(a,b)=>a>=0&&b>=0&&Math.abs(row(a)-row(b))+Math.abs(col(a)-col(b))===1;
   function swap(a,b){const t=board[a];board[a]=board[b];board[b]=t}
 
   function findMatches(){
@@ -69,25 +69,48 @@ function mount(host){
     }
   }
 
-  function render(extraClass='',marked=new Set()){
+  function render(marked=new Set(),mode='',falls=null){
     const frag=document.createDocumentFragment();
+    const rect=boardEl.getBoundingClientRect();
+    const step=Math.max(38,(rect.height||rect.width||400)/ROWS);
     boardEl.innerHTML='';
     for(let i=0;i<SIZE;i++){
       const t=board[i],p=t===null?null:PIECES[t],btn=document.createElement('button');
       btn.type='button';btn.className='match3-cell';btn.dataset.index=String(i);btn.setAttribute('role','gridcell');
       if(i===selected)btn.classList.add('is-selected');
-      if(marked.has(i)&&extraClass)btn.classList.add(extraClass);
-      if(p){btn.dataset.type=p.key;btn.setAttribute('aria-label',p.label);btn.innerHTML=`<span>${p.icon}</span>`}else{btn.classList.add('is-empty');btn.setAttribute('aria-label','Puste pole')}
+      if(marked.has(i)&&mode==='pop')btn.classList.add('is-pop');
+      if(p){
+        btn.dataset.type=p.key;btn.setAttribute('aria-label',p.label);
+        const span=document.createElement('span');span.textContent=p.icon;
+        const fallRows=falls?.[i]||0;
+        if(fallRows>0){
+          span.classList.add('is-falling');
+          span.style.setProperty('--fall-y',`${-Math.round(fallRows*step)}px`);
+          span.style.setProperty('--fall-duration',`${Math.min(520,260+fallRows*42)}ms`);
+          span.style.setProperty('--fall-delay',`${Math.min(65,col(i)*6)}ms`);
+        }
+        btn.appendChild(span);
+      }else{btn.classList.add('is-empty');btn.setAttribute('aria-label','Puste pole')}
       frag.appendChild(btn);
     }
     boardEl.appendChild(frag);
   }
 
-  function collapse(){
+  function collapseAndRefill(){
+    const falls=Array(SIZE).fill(0);
     for(let c=0;c<COLS;c++){
-      const vals=[];for(let r=ROWS-1;r>=0;r--){const v=board[index(r,c)];if(v!==null)vals.push(v)}
-      let pos=0;for(let r=ROWS-1;r>=0;r--){board[index(r,c)]=pos<vals.length?vals[pos++]:randType()}
+      let write=ROWS-1;
+      for(let r=ROWS-1;r>=0;r--){
+        const src=index(r,c),v=board[src];
+        if(v===null)continue;
+        const dst=index(write,c);board[dst]=v;falls[dst]=write-r;
+        if(dst!==src)board[src]=null;
+        write--;
+      }
+      const missing=write+1;
+      for(let r=write;r>=0;r--){const dst=index(r,c);board[dst]=randType();falls[dst]=missing}
     }
+    return falls;
   }
 
   async function resolveMatches(comboStart=1){
@@ -96,9 +119,12 @@ function mount(host){
       const matches=findMatches();
       if(!matches.size)break;
       const gained=matches.size*10*combo;score+=gained;scoreEl.textContent=String(score);statusEl.textContent=combo>1?`🔥 Combo x${combo}  +${gained}`:`✨ +${gained}`;
-      render('is-pop',matches);try{navigator.vibrate?.(Math.min(35,10+combo*5))}catch{}
-      await wait(170);
-      for(const i of matches)board[i]=null;render();await wait(80);collapse();render('is-drop',new Set(board.map((_,i)=>i)));await wait(150);combo++;
+      render(matches,'pop');try{navigator.vibrate?.(Math.min(35,10+combo*5))}catch{}
+      await wait(185);
+      for(const i of matches)board[i]=null;
+      const falls=collapseAndRefill();render(new Set(),'',falls);
+      const maxFall=Math.max(0,...falls);await wait(Math.min(590,300+maxFall*44));
+      combo++;
     }
     if(running&&!hasMove()){
       statusEl.textContent='🔀 Brak ruchów, tasuję planszę';await wait(250);makeBoard();render();
@@ -131,9 +157,7 @@ function mount(host){
     cancelAnimationFrame(raf);score=0;selected=-1;busy=false;timeUp=false;scoreEl.textContent='0';timeEl.textContent='60';statusEl.textContent='Połącz 3 lub więcej symboli';makeBoard();render();title.textContent='🎃 Halloween Match';card.querySelector('p').textContent='Zamieniaj sąsiednie symbole miejscami. Połącz co najmniej 3 takie same w rzędzie lub kolumnie.';startBtn.textContent='START';
   }
 
-  function start(){
-    reset();running=true;overlay.hidden=true;endAt=performance.now()+GAME_MS;window.H3Analytics?.track?.('halloween_match_start').catch?.(()=>{});raf=requestAnimationFrame(updateClock);
-  }
+  function start(){reset();running=true;overlay.hidden=true;endAt=performance.now()+GAME_MS;window.H3Analytics?.track?.('halloween_match_start').catch?.(()=>{});raf=requestAnimationFrame(updateClock)}
 
   function finish(){
     if(!running)return;running=false;busy=false;cancelAnimationFrame(raf);selected=-1;
@@ -154,11 +178,13 @@ function mount(host){
   function exitFullscreen(fromPop=false){
     if(!fullscreen)return;fullscreen=false;const box=host.closest('.match3-game-detail');box?.classList.remove('match3-game-fullscreen-box');document.body.classList.remove('match3-game-fullscreen');const btn=box?.querySelector('.match3-fullscreen-button');if(btn){btn.textContent='⛶';btn.setAttribute('aria-label','Włącz pełny ekran')}
     if(!fromPop&&pushedState&&history.state?.h3Match3Fullscreen){pushedState=false;history.back()}else pushedState=false;
+    requestAnimationFrame(()=>render());
   }
   function toggleFullscreen(){
     if(fullscreen){exitFullscreen();return}
     const box=host.closest('.match3-game-detail');if(!box)return;fullscreen=true;box.classList.add('match3-game-fullscreen-box');document.body.classList.add('match3-game-fullscreen');const btn=box.querySelector('.match3-fullscreen-button');if(btn){btn.textContent='✕';btn.setAttribute('aria-label','Wyłącz pełny ekran')}
     if(!history.state?.h3Match3Fullscreen){history.pushState({...history.state,h3Match3Fullscreen:true},'',location.href);pushedState=true}
+    requestAnimationFrame(()=>render());
   }
   const onPop=()=>{if(fullscreen)exitFullscreen(true)};window.addEventListener('popstate',onPop);
 
