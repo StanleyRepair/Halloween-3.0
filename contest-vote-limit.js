@@ -25,6 +25,9 @@ function updateUi(){counter.textContent=`${selected.size} / ${maxVotes}`;grid.qu
 grid.addEventListener('click',e=>{const card=e.target.closest('.candidate-card[data-entry]');if(!card||save.hidden)return;e.preventDefault();e.stopImmediatePropagation();const id=card.dataset.entry;if(selected.has(id))selected.delete(id);else if(selected.size<maxVotes)selected.add(id);else{const m=document.getElementById('contestMessage');if(m){m.textContent=`Możesz wybrać maksymalnie ${maxVotes} przebrania.`;m.className='contest-message error';m.hidden=false;setTimeout(()=>m.hidden=true,3500)}return}updateUi()},true);
 save.addEventListener('click',async e=>{if(save.hidden)return;e.preventDefault();e.stopImmediatePropagation();save.disabled=true;try{const{error}=await sb.rpc('set_my_votes',{p_voter_token:localStorage.getItem('h3_voter_device'),p_entry_ids:[...selected]});if(error)throw error;const m=document.getElementById('contestMessage');if(m){m.textContent='Głosy zapisane ✓';m.className='contest-message';m.hidden=false;setTimeout(()=>m.hidden=true,3000)}}catch(err){const m=document.getElementById('contestMessage');if(m){m.textContent=err.message||'Nie udało się zapisać głosów.';m.className='contest-message error';m.hidden=false}}finally{save.disabled=false}},true);
 new MutationObserver(()=>{if(syncing)return;syncing=true;syncFromDom();updateUi();syncing=false}).observe(grid,{childList:true,subtree:true});
-document.querySelector('.nav-item[data-tab="contest"]')?.addEventListener('click',()=>setTimeout(refreshLimit,150));
-setTimeout(refreshLimit,300);
+const podiumPanel=document.getElementById('podiumPanel'),entriesPanel=document.getElementById('entriesPanel');
+function syncResultsOrder(){if(!podiumPanel||!entriesPanel)return;const parent=entriesPanel.parentElement;if(!parent)return;if(!podiumPanel.hidden){if(podiumPanel.nextElementSibling!==entriesPanel)parent.insertBefore(podiumPanel,entriesPanel)}else if(entriesPanel.nextElementSibling!==podiumPanel){parent.insertBefore(podiumPanel,entriesPanel.nextElementSibling)}}
+if(podiumPanel)new MutationObserver(syncResultsOrder).observe(podiumPanel,{attributes:true,attributeFilter:['hidden']});
+document.querySelector('.nav-item[data-tab="contest"]')?.addEventListener('click',()=>setTimeout(()=>{refreshLimit();syncResultsOrder()},150));
+setTimeout(()=>{refreshLimit();syncResultsOrder()},300);
 })();
