@@ -52,7 +52,7 @@ function applyReliableGuide(){
       if(alt.innerHTML!==note)alt.innerHTML=note;
       if(alt.hidden)alt.hidden=false;
     }
-    card.dataset.iosGuide='reliable-v1';
+    if(card.dataset.iosGuide!=='reliable-v2')card.dataset.iosGuide='reliable-v2';
   }finally{
     applying=false;
   }
