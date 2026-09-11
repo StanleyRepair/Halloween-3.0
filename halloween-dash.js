@@ -11,7 +11,7 @@ function mount(host){
   host.innerHTML=`<div class="dash-shell"><div class="dash-hud"><div><span>Wynik</span><strong class="dash-score">0</strong></div><div><span>Prędkość</span><strong class="dash-speed">1.0×</strong></div><div><span>Rekord</span><strong class="dash-best">0</strong></div></div><div class="dash-stage"><canvas class="dash-canvas" width="960" height="540" aria-label="Halloween Dash"></canvas><div class="dash-overlay"><div class="dash-card"><h3>🎃 Halloween Dash</h3><p>Postać biegnie sama. Stuknij ekran, aby skoczyć nad przeszkodami. Im dalej dojdziesz, tym szybciej robi się na trasie.</p><button type="button" class="dash-start">START</button></div></div></div><div class="dash-tip"><b>Sterowanie:</b> stuknięcie ekranu albo spacja. Jeden skok, jeden rytm.</div></div>`;
 
   const canvas=host.querySelector('.dash-canvas'),ctx=canvas.getContext('2d',{alpha:false}),overlay=host.querySelector('.dash-overlay'),card=host.querySelector('.dash-card'),startBtn=host.querySelector('.dash-start'),scoreEl=host.querySelector('.dash-score'),speedEl=host.querySelector('.dash-speed'),bestEl=host.querySelector('.dash-best');
-  let best=Number(localStorage.getItem(BEST_KEY)||0),running=false,dead=false,raf=0,last=0,elapsed=0,distance=0,score=0,speed=360,spawnDistance=0,fullscreen=false,pushedState=false,resizeObserver=null,forcedTimer=0,viewW=BASE_W;
+  let best=Number(localStorage.getItem(BEST_KEY)||0),running=false,dead=false,raf=0,last=0,elapsed=0,distance=0,bonusScore=0,score=0,speed=360,spawnDistance=0,fullscreen=false,pushedState=false,resizeObserver=null,forcedTimer=0,viewW=BASE_W;
   let obstacles=[],particles=[],candies=[],decor=[];
   const player={x:165,y:GROUND-46,w:46,h:46,vy:0,onGround:true,rot:0};
   bestEl.textContent=String(best);
@@ -29,7 +29,7 @@ function mount(host){
   resizeObserver=new ResizeObserver(()=>fitCanvas());resizeObserver.observe(canvas);fitCanvas();
 
   function resetWorld(){
-    obstacles=[];particles=[];candies=[];decor=[];elapsed=0;distance=0;score=0;speed=360;spawnDistance=460;
+    obstacles=[];particles=[];candies=[];decor=[];elapsed=0;distance=0;bonusScore=0;score=0;speed=360;spawnDistance=460;
     player.y=GROUND-player.h;player.vy=0;player.onGround=true;player.rot=0;
     for(let i=0;i<22;i++)decor.push({x:i*90+rand(0,60),kind:Math.random()<.55?'grave':'pumpkin',s:rand(.6,1.1)});
     updateHud();
@@ -78,7 +78,7 @@ function mount(host){
 
   function aabb(a,b,pad=0){return a.x+pad<b.x+b.w-pad&&a.x+a.w-pad>b.x+pad&&a.y+pad<b.y+b.h-pad&&a.y+a.h-pad>b.y+pad}
   function update(dt){
-    elapsed+=dt;speed=Math.min(620,360+elapsed*7.5);distance+=speed*dt;score=Math.floor(distance/34);
+    elapsed+=dt;speed=Math.min(620,360+elapsed*7.5);distance+=speed*dt;score=Math.floor(distance/34)+bonusScore;
     spawnDistance-=speed*dt;if(spawnDistance<=0)spawn();
 
     player.vy+=2200*dt;player.y+=player.vy*dt;
@@ -99,7 +99,7 @@ function mount(host){
     }
     for(let i=candies.length-1;i>=0;i--){
       const c=candies[i],cb={x:c.x-c.r,y:c.y-c.r,w:c.r*2,h:c.r*2};
-      if(aabb(pb,cb)){distance+=850;burst(c.x,c.y,'#ffb23f',12);candies.splice(i,1);try{navigator.vibrate?.(6)}catch{}}
+      if(aabb(pb,cb)){bonusScore+=25;score=Math.floor(distance/34)+bonusScore;burst(c.x,c.y,'#ffb23f',12);candies.splice(i,1);try{navigator.vibrate?.(6)}catch{}}
     }
     updateHud();
   }
