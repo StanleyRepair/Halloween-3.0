@@ -58,4 +58,5 @@ detail.addEventListener('click',e=>{
 document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>{if(detail.dataset.currentId===RITUAL_ID)stop()},true));
 new MutationObserver(()=>{if(detail.dataset.currentId===RITUAL_ID&&!detail.querySelector('#darkRitualHost'))stop();addTile()}).observe(detail,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','data-current-id']});
 addTile();
+if(!document.querySelector('script[data-halloween-dash-integration]')){const s=document.createElement('script');s.src='halloween-dash-integration.js?v=1';s.dataset.halloweenDashIntegration='1';document.body.appendChild(s)}
 })();
