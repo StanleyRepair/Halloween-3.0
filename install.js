@@ -1,5 +1,5 @@
 (()=>{
-const params=new URLSearchParams(location.search),requestedPreview=params.get('preview')||'',allowedPreviews=new Set(['ios16','ios13','ios-messenger','ios-external','android-chrome','android-other']),previewMode=allowedPreviews.has(requestedPreview)?requestedPreview:'';
+const params=new URLSearchParams(location.search),requestedPreview=params.get('preview')||'',allowedPreviews=new Set(['ios13mini','ios14','ios16pro','iosmax','ios-ipad','ios16','ios13','ios-messenger','ios-external','android-chrome','android-other']),previewMode=allowedPreviews.has(requestedPreview)?requestedPreview:'';
 const ua=navigator.userAgent||'';
 const detectedStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const detectedIOS=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
@@ -9,9 +9,10 @@ const detectedSafariIOS=detectedIOS&&/Safari\//i.test(ua)&&!nonSafariIOS.test(ua
 const detectedChrome=/Chrome\/\d+/i.test(ua)&&!/EdgA|EdgiOS|OPR|SamsungBrowser|FBAN|FBAV|FB_IAB|Messenger|Instagram/i.test(ua);
 const detectedAndroid=/Android/i.test(ua);
 const detectedInAppBrowser=/FBAN|FBAV|FB_IAB|Messenger|Instagram|WhatsApp|Line\/|MicroMessenger|Telegram|Snapchat|TikTok/i.test(ua);
-const isIOS=previewMode?previewMode.startsWith('ios'):detectedIOS;
-const isIPad=previewMode?false:detectedIPad;
-const isSafariIOS=previewMode?(previewMode==='ios16'||previewMode==='ios13'):detectedSafariIOS;
+const previewSafariIOS=new Set(['ios13mini','ios14','ios16pro','iosmax','ios-ipad','ios16','ios13']);
+const isIOS=previewMode?(previewMode.startsWith('ios')):detectedIOS;
+const isIPad=previewMode?previewMode==='ios-ipad':detectedIPad;
+const isSafariIOS=previewMode?previewSafariIOS.has(previewMode):detectedSafariIOS;
 const isAndroid=previewMode?previewMode.startsWith('android'):detectedAndroid;
 const isChrome=previewMode?previewMode==='android-chrome':detectedChrome;
 const isInAppBrowser=previewMode?previewMode==='ios-messenger':detectedInAppBrowser;
@@ -23,21 +24,48 @@ try{if(!previewMode){const saved=sessionStorage.getItem('h3_install_platform_ove
 function track(name,data){if(!previewMode)window.H3Analytics?.track?.(name,data)}
 function detectedPlatform(){return isIOS?'ios':isAndroid?'android':'other'}
 function activePlatform(){return forcedPlatform||detectedPlatform()}
-function narrowSafariToolbar(){if(previewMode==='ios13')return true;if(previewMode==='ios16')return false;const w=Math.min(window.innerWidth||999,screen.width||999);return w<=390}
+function iosScreenSignature(){
+  const sw=Math.round(Math.min(screen.width||window.innerWidth||0,screen.height||window.innerHeight||0));
+  const sh=Math.round(Math.max(screen.width||window.innerWidth||0,screen.height||window.innerHeight||0));
+  const dpr=Math.round((window.devicePixelRatio||1)*100)/100;
+  return {sw,sh,dpr,key:`${sw}x${sh}@${dpr}`};
+}
+function detectIosInstructionVariant(){
+  if(previewMode==='ios13mini'||previewMode==='ios13')return 'mini';
+  if(previewMode==='ios14')return 'standard';
+  if(previewMode==='ios16pro'||previewMode==='ios16')return 'pro';
+  if(previewMode==='iosmax')return 'max';
+  if(previewMode==='ios-ipad')return 'ipad';
+  if(isIPad)return 'ipad';
+  const {sw,sh}=iosScreenSignature();
+  if(sw===375&&sh===812)return 'mini';
+  if(sw===390&&sh===844)return 'standard';
+  if((sw===393&&sh===852)||(sw===402&&sh===874))return 'pro';
+  if((sw===428&&sh===926)||(sw===430&&sh===932)||(sw===440&&sh===956))return 'max';
+  if(sw<=375&&sh<=812)return 'mini';
+  return 'standard';
+}
 const pageMenuIcon='<svg class="ios-page-menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M5 3h8v2a2 2 0 1 0 0 4v2H5V9H3a2 2 0 0 1 0-4h2V3z"/><path d="M5 16h14M5 21h10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
 function pageMenuLabel(){return `<b class="ios-page-menu-label">${pageMenuIcon}<span>Menu strony</span></b>`}
 function configureIosInstructions(){
   if(!iosSteps)return;
-  const narrow=narrowSafariToolbar(),menuLabel=pageMenuLabel();
+  const variant=detectIosInstructionVariant(),menuLabel=pageMenuLabel();
   if(iosKicker)iosKicker.textContent=isIPad?'IPAD • SAFARI':'IPHONE • SAFARI';
-  if(iosLead)iosLead.textContent='W Safari zrób 5 krótkich kroków.';
-  if(narrow){
+  if(variant==='mini'){
+    if(iosLead)iosLead.textContent='W Safari zrób 5 krótkich kroków.';
     iosSteps.innerHTML=`<div><strong>1</strong><span>Stuknij ${menuLabel} po lewej stronie paska adresu</span></div><div><strong>2</strong><span>Wybierz <b>Udostępnij</b></span></div><div><strong>3</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>4</strong><span>Zostaw włączone <b>Otwórz jako aplikację www</b></span></div><div><strong>5</strong><span>Stuknij <b>Dodaj</b></span></div>`;
-    if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML=`Jeśli zamiast ${menuLabel} widzisz przycisk <b>•••</b>, użyj <b>••• → Udostępnij</b>.`}
-  }else{
-    iosSteps.innerHTML='<div><strong>1</strong><span>Stuknij <b>•••</b> w prawym dolnym rogu</span></div><div><strong>2</strong><span>Wybierz <b>Udostępnij</b></span></div><div><strong>3</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>4</strong><span>Zostaw włączone <b>Otwórz jako aplikację www</b></span></div><div><strong>5</strong><span>Stuknij <b>Dodaj</b></span></div>';
-    if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML=`Jeśli nie widzisz <b>•••</b>, użyj ${menuLabel} po lewej stronie paska adresu, a potem <b>Udostępnij</b>.`}
+    if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML=`Jeśli zamiast ${menuLabel} widzisz bezpośrednio przycisk <b>Udostępnij</b>, możesz użyć właśnie jego.`}
+    return;
   }
+  if(variant==='ipad'){
+    if(iosLead)iosLead.textContent='W Safari zrób 4 krótkie kroki.';
+    iosSteps.innerHTML='<div><strong>1</strong><span>Stuknij <b>Udostępnij</b></span></div><div><strong>2</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>3</strong><span>Jeśli widzisz <b>Otwórz jako aplikację www</b>, zostaw tę opcję włączoną</span></div><div><strong>4</strong><span>Stuknij <b>Dodaj</b></span></div>';
+    if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML='Jeśli nie widzisz <b>Do ekranu głównego</b>, przewiń listę czynności niżej.'}
+    return;
+  }
+  if(iosLead)iosLead.textContent='W Safari zrób 4 krótkie kroki.';
+  iosSteps.innerHTML=`<div><strong>1</strong><span>Stuknij <b>Udostępnij</b> na dolnym pasku</span></div><div><strong>2</strong><span>Wybierz <b>Do ekranu głównego</b></span></div><div><strong>3</strong><span>Zostaw włączone <b>Otwórz jako aplikację www</b></span></div><div><strong>4</strong><span>Stuknij <b>Dodaj</b></span></div>`;
+  if(iosAlt){iosAlt.hidden=false;iosAlt.innerHTML=`Jeśli nie widzisz przycisku <b>Udostępnij</b> na pasku, stuknij ${menuLabel} po lewej stronie paska adresu i wybierz <b>Udostępnij</b>.`}
 }
 function updateIosInAppNotice(){
   const shouldShow=activePlatform()==='ios'&&isInAppBrowser&&!standalone&&!isSafariIOS;
@@ -98,7 +126,7 @@ function openSafari(auto=false){
   return true
 }
 function attemptSafariAuto(){if(!isIOS||isSafariIOS||isInAppBrowser||standalone)return;if(previewMode){safariConfirmNotice(true);return}let done=false;try{done=sessionStorage.getItem('h3_safari_auto_attempted')==='1';if(!done)sessionStorage.setItem('h3_safari_auto_attempted','1')}catch{}if(done){safariConfirmNotice(true);return}clearTimeout(safariAutoTimer);safariAutoTimer=setTimeout(()=>openSafari(true),180)}
-function showInstallChoice(){const platform=activePlatform();if(platform==='ios'){if(isIOS&&!isSafariIOS&&!standalone){show(browserCard);if(!isInAppBrowser)attemptSafariAuto()}else{show(iosCard);safariConfirmNotice(false);track('install_landing_ios_instructions',{source:'install_page',manual:forcedPlatform==='ios'})}return}if(platform==='android'){safariConfirmNotice(false);if(isChrome)show(installCard);else show(browserCard);return}if(isChrome){safariConfirmNotice(false);show(installCard);return}safariConfirmNotice(false);show(browserCard)}
+function showInstallChoice(){const platform=activePlatform();if(platform==='ios'){if(isIOS&&!isSafariIOS&&!standalone){show(browserCard);if(!isInAppBrowser)attemptSafariAuto()}else{show(iosCard);safariConfirmNotice(false);track('install_landing_ios_instructions',{source:'install_page',manual:forcedPlatform==='ios',variant:detectIosInstructionVariant()})}return}if(platform==='android'){safariConfirmNotice(false);if(isChrome)show(installCard);else show(browserCard);return}if(isChrome){safariConfirmNotice(false);show(installCard);return}safariConfirmNotice(false);show(browserCard)}
 function setPlatform(platform){if(previewMode||platform!=='ios'&&platform!=='android')return;forcedPlatform=platform;try{sessionStorage.setItem('h3_install_platform_override',platform)}catch{}showInstallChoice();track('install_platform_override',{platform})}
 function resolvePrompt(){waiters.splice(0).forEach(r=>r())}
 async function isInstalled(){if(previewMode)return false;if(standalone)return true;try{if(typeof navigator.getInstalledRelatedApps==='function'){const apps=await navigator.getInstalledRelatedApps();if(Array.isArray(apps)&&apps.some(a=>a.platform==='webapp'))return true}}catch(e){console.warn('Installed app detection failed',e)}return false}
@@ -110,5 +138,6 @@ function openPreferredBrowser(){if(previewMode)return;if(isIOS&&!isSafariIOS&&!i
 installBtn?.addEventListener('click',install);chromeBtn?.addEventListener('click',openPreferredBrowser);fallbackBtn?.addEventListener('click',()=>{if(previewMode)return;try{localStorage.removeItem('h3_install_confirmed')}catch{}showInstallChoice();if(installBtn){installBtn.textContent='ZAINSTALUJ APLIKACJĘ';status.textContent='Kliknij instalację. Jeśli Chrome nie pokaże okna, użyj menu ⋮ i opcji „Zainstaluj aplikację”.'}});
 platformSwitch?.addEventListener('click',e=>{const b=e.target.closest('[data-install-platform]');if(b)setPlatform(b.dataset.installPlatform)});
 window.addEventListener('resize',()=>{if(isSafariIOS&&activePlatform()==='ios')configureIosInstructions()});
-(async()=>{configureIosInstructions();markPlatform();if(forcedPlatform){showInstallChoice();return}if(await isInstalled()){setInstalledMarker();showInstalled(true);return}if(isIOS){if(isSafariIOS){show(iosCard);track('install_landing_ios_instructions',{source:'install_page',manual:false})}else{show(browserCard);if(!isInAppBrowser)attemptSafariAuto()}return}if(isChrome){if(hasInstalledMarker())showInstalled(false);else show(installCard)}else show(browserCard)})();
+window.addEventListener('orientationchange',()=>{if(isSafariIOS&&activePlatform()==='ios')setTimeout(configureIosInstructions,120)});
+(async()=>{configureIosInstructions();markPlatform();if(forcedPlatform){showInstallChoice();return}if(await isInstalled()){setInstalledMarker();showInstalled(true);return}if(isIOS){if(isSafariIOS){show(iosCard);track('install_landing_ios_instructions',{source:'install_page',manual:false,variant:detectIosInstructionVariant()})}else{show(browserCard);if(!isInAppBrowser)attemptSafariAuto()}return}if(isChrome){if(hasInstalledMarker())showInstalled(false);else show(installCard)}else show(browserCard)})();
 })();
