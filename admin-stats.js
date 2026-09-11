@@ -4,7 +4,8 @@ let data=null;
 const GAME_INFO={
   creepy:{title:'Creepy Pumpkin',icon:'🎃'},
   candle:{title:'Zgaś świece',icon:'🕯️'},
-  halloween_match:{title:'Halloween Match',icon:'🧩'}
+  halloween_match:{title:'Halloween Match',icon:'🧩'},
+  dark_ritual:{title:'Mroczny rytuał',icon:'🔮'}
 };
 const esc=v=>{const d=document.createElement('div');d.textContent=String(v??'');return d.innerHTML};
 const fmt=n=>new Intl.NumberFormat('pl-PL').format(Number(n||0));
