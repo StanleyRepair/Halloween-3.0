@@ -96,6 +96,31 @@ function mount(host){
     boardEl.appendChild(frag);
   }
 
+  async function animateSwap(a,b,duration=190){
+    const cellA=boardEl.querySelector(`.match3-cell[data-index="${a}"]`),cellB=boardEl.querySelector(`.match3-cell[data-index="${b}"]`);
+    if(!cellA||!cellB)return;
+    cellA.classList.remove('is-selected');cellB.classList.remove('is-selected');
+    let reduced=false;try{reduced=matchMedia('(prefers-reduced-motion: reduce)').matches}catch{}
+    if(reduced||typeof cellA.animate!=='function'){await wait(35);return}
+    const ra=cellA.getBoundingClientRect(),rb=cellB.getBoundingClientRect();
+    const dx=rb.left-ra.left,dy=rb.top-ra.top;
+    if(Math.abs(dx)<1&&Math.abs(dy)<1)return;
+    cellA.style.zIndex='5';cellB.style.zIndex='6';cellA.style.willChange='transform';cellB.style.willChange='transform';
+    const easing='cubic-bezier(.2,.82,.24,1)';
+    const opts={duration,easing,fill:'forwards'};
+    const animA=cellA.animate([
+      {transform:'translate3d(0,0,0) scale(1)',offset:0},
+      {transform:`translate3d(${dx*.52}px,${dy*.52}px,0) scale(.96)`,offset:.52},
+      {transform:`translate3d(${dx}px,${dy}px,0) scale(1)`,offset:1}
+    ],opts);
+    const animB=cellB.animate([
+      {transform:'translate3d(0,0,0) scale(1)',offset:0},
+      {transform:`translate3d(${-dx*.52}px,${-dy*.52}px,0) scale(.96)`,offset:.52},
+      {transform:`translate3d(${-dx}px,${-dy}px,0) scale(1)`,offset:1}
+    ],opts);
+    try{await Promise.all([animA.finished,animB.finished])}catch{}
+  }
+
   function collapseAndRefill(){
     const falls=Array(SIZE).fill(0);
     for(let c=0;c<COLS;c++){
@@ -133,8 +158,17 @@ function mount(host){
 
   async function trySwap(a,b){
     if(!running||busy||!adjacent(a,b))return;
-    busy=true;selected=-1;swap(a,b);render();await wait(110);
-    if(!findMatches().size){swap(a,b);render();boardEl.classList.add('is-wrong');try{navigator.vibrate?.(10)}catch{};await wait(150);boardEl.classList.remove('is-wrong');statusEl.textContent='Ten ruch nic nie łączy';busy=false;if(timeUp)finish();return}
+    busy=true;selected=-1;
+    await animateSwap(a,b,190);
+    swap(a,b);render();
+    if(!findMatches().size){
+      await wait(24);
+      await animateSwap(a,b,165);
+      swap(a,b);render();
+      boardEl.classList.add('is-wrong');try{navigator.vibrate?.(10)}catch{};await wait(120);boardEl.classList.remove('is-wrong');
+      statusEl.textContent='Ten ruch nic nie łączy';busy=false;if(timeUp)finish();return;
+    }
+    await wait(45);
     await resolveMatches(1);busy=false;if(timeUp)finish();
   }
 
