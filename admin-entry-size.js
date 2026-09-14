@@ -78,6 +78,10 @@
       if(originalPhoto)photo=currentPhoto;
     }
 
+    if(typeof entryCount!=='undefined'&&data?.entry_count!=null){
+      entryCount.textContent=String(Number(data.entry_count)||0);
+    }
+
     const rows=entriesEl?.querySelectorAll('.entry-row')||[];
     prepareDeferredImages(entriesEl?.querySelectorAll('.entry-row img')||[],entryUrls);
     rows.forEach((row,index)=>{
