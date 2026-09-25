@@ -112,7 +112,7 @@ function pageAtCenter(scroller,stack){
   return best;
 }
 function openFullscreen(state,startPage){
-  if(active)active.close(false);
+  if(active)active.close(true);
   const overlay=document.createElement('div');
   overlay.className='h3-pdf-fullscreen';
   overlay.innerHTML='<div class="h3-pdf-fullbar"><button type="button" class="h3-pdf-close" aria-label="Zamknij">×</button><div class="h3-pdf-fulltitle"><strong></strong><span class="h3-pdf-counter"></span></div><div class="h3-pdf-fullactions"></div></div><div class="h3-pdf-full-scroll"><div class="h3-pdf-full-stage"><div class="h3-pdf-stack h3-pdf-full-stack"></div></div></div><div class="h3-pdf-zoom-hint">Przybliż dwoma palcami lub stuknij dwa razy</div>';
