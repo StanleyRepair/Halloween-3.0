@@ -36,7 +36,7 @@ async function renderCanvas(pdf,pageNumber,canvas,cssWidth,resolution){
   const unit=page.getViewport({scale:1});
   const width=Math.max(120,cssWidth||320);
   const cssScale=width/unit.width;
-  const quality=Math.min(Math.max(Number(resolution)||1,1),2);
+  const quality=Math.min(Math.max(Number(resolution)||1,1),2.5);
   const viewport=page.getViewport({scale:cssScale*quality});
   canvas.width=Math.max(1,Math.floor(viewport.width));
   canvas.height=Math.max(1,Math.floor(viewport.height));
@@ -208,7 +208,9 @@ function openFullscreen(state,startPage){
   function close(fromButton=true){
     if(closed)return;
     if(fromButton&&pushed){
-      try{history.back();return}catch{}
+      cleanup();
+      try{history.back()}catch{}
+      return;
     }
     cleanup();
   }
@@ -224,7 +226,7 @@ function openFullscreen(state,startPage){
   document.addEventListener('keydown',onKey);
   try{history.pushState({...history.state,h3PdfViewer:true},'',location.href);pushed=true;window.addEventListener('popstate',onPop)}catch{}
   active={close};
-  createStack(state.pdf,stack,{root:scroller,resolution:1.55}).then(fn=>{
+  createStack(state.pdf,stack,{root:scroller,resolution:2.25}).then(fn=>{
     stackCleanup=fn;
     requestAnimationFrame(()=>{
       const target=stack.querySelector('[data-page="'+clamp(startPage,1,state.pdf.numPages)+'"]');
