@@ -8,10 +8,11 @@ const matchTile={id:MATCH_ID,title:'Halloween Match',icon:'🧩',body:'',image_p
 const gamesTile={id:GAMES_ID,title:'Gry',icon:'🎮',body:'',image_path:null,children:[creepyTile,candleTile,matchTile],builtin_games:true};
 const notificationTile={id:NOTIF_ID,title:'Powiadomienia',icon:'🔔',body:'',image_path:null,children:[],builtin_notifications:true};
 const esc=v=>{const d=document.createElement('div');d.textContent=String(v??'');return d.innerHTML};
-const imageUrl=path=>`${SUPABASE_URL}/storage/v1/object/public/other-images/${String(path||'').split('/').map(encodeURIComponent).join('/')}`;\nconst pdfUrl=path=>`${SUPABASE_URL}/storage/v1/object/public/other-pdfs/${String(path||'').split('/').map(encodeURIComponent).join('/')}`;
+const imageUrl=path=>`${SUPABASE_URL}/storage/v1/object/public/other-images/${String(path||'').split('/').map(encodeURIComponent).join('/')}`;
+const pdfUrl=path=>`${SUPABASE_URL}/storage/v1/object/public/other-pdfs/${String(path||'').split('/').map(encodeURIComponent).join('/')}`;
 const ua=navigator.userAgent||'',isAndroid=/Android/i.test(ua),isIOS=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function waitForSW(ms=8000){const timeout=new Promise((_,rej)=>setTimeout(()=>{const e=new Error('Service worker timeout');e.code='SW_TIMEOUT';rej(e)},ms));return Promise.race([navigator.serviceWorker.ready,timeout])}
-function stopGames(){window.CreepyPumpkinGame?.unmount?.();window.H3CandleGame?.unmount?.();window.H3MatchGame?.unmount?.();try{pdfCleanup()}catch{}pdfCleanup=()=>{};window.H3PdfViewer?.close?.()}
+function stopGames(){window.CreepyPumpkinGame?.unmount?.();window.H3CandleGame?.unmount?.();window.H3MatchGame?.unmount?.();const closePdf=pdfCleanup;pdfCleanup=()=>{};try{closePdf()}catch{}}
 function hasOwnContent(t){return !!((t.body||'').trim()||t.image_path||t.pdf_path||t.builtin_creepy_game||t.builtin_candle_game||t.builtin_match_game||t.builtin_games||t.builtin_notifications)}
 function tileMarkup(t,sub=false){const hasChildren=!!(t.children||[]).length,hasContent=hasOwnContent(t)||hasChildren;return `<button type="button" class="${sub?'other-subtile':'other-tile'}" data-other-id="${t.id}"><span class="other-tile-icon">${esc(t.icon||'📄')}</span><span><strong>${esc(t.title)}</strong><small>${hasContent?'Otwórz':'JUŻ WKRÓTCE.. 🔧'}</small></span><span class="other-chevron">›</span></button>`}
 function rootTiles(){return [...(data||[]),notificationTile,gamesTile]}
