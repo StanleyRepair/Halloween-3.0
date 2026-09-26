@@ -1,15 +1,36 @@
 (()=>{
 'use strict';
-const PDFJS_URL='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.3.289/pdf.min.mjs';
-const PDFJS_WORKER='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.3.289/pdf.worker.min.mjs';
+const PDFJS_URL='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFJS_WORKER='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 let libPromise=null;
 let active=null;
 
 function loadPdfJs(){
+  if(window.pdfjsLib){
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
+    return Promise.resolve(window.pdfjsLib);
+  }
   if(libPromise)return libPromise;
-  libPromise=import(PDFJS_URL).then(lib=>{
-    lib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
-    return lib;
+  libPromise=new Promise((resolve,reject)=>{
+    const existing=document.querySelector('script[data-h3-pdfjs]');
+    const finish=()=>{
+      if(!window.pdfjsLib)return reject(new Error('PDF.js nie został uruchomiony.'));
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
+      resolve(window.pdfjsLib);
+    };
+    if(existing){
+      if(existing.dataset.loaded==='1')return finish();
+      existing.addEventListener('load',finish,{once:true});
+      existing.addEventListener('error',()=>reject(new Error('Nie udało się wczytać PDF.js.')),{once:true});
+      return;
+    }
+    const script=document.createElement('script');
+    script.src=PDFJS_URL;
+    script.async=true;
+    script.dataset.h3Pdfjs='1';
+    script.addEventListener('load',()=>{script.dataset.loaded='1';finish()},{once:true});
+    script.addEventListener('error',()=>reject(new Error('Nie udało się wczytać PDF.js.')),{once:true});
+    document.head.appendChild(script);
   });
   return libPromise;
 }
@@ -43,7 +64,9 @@ async function renderCanvas(pdf,pageNumber,canvas,cssWidth,resolution){
   canvas.style.width=Math.round(unit.width*cssScale)+'px';
   canvas.style.height=Math.round(unit.height*cssScale)+'px';
   canvas.hidden=false;
-  await page.render({canvas,viewport,background:'rgb(255,255,255)'}).promise;
+  const context=canvas.getContext('2d',{alpha:false});
+  if(!context)throw new Error('Brak kontekstu Canvas 2D.');
+  await page.render({canvasContext:context,viewport,background:'rgb(255,255,255)'}).promise;
 }
 async function createStack(pdf,container,options={}){
   const cleanup=[];
@@ -84,6 +107,7 @@ async function createStack(pdf,container,options={}){
       el.classList.add('is-rendered');
     }catch(err){
       console.warn('PDF page render failed',err);
+      try{options.onError?.(err,Number(el.dataset.page)||0)}catch{}
       el.classList.add('is-error');
       el.innerHTML='<div class="h3-pdf-page-error">Nie udało się wyświetlić tej strony.</div>';
     }finally{
@@ -226,7 +250,7 @@ function openFullscreen(state,startPage){
   document.addEventListener('keydown',onKey);
   try{history.pushState({...history.state,h3PdfViewer:true},'',location.href);pushed=true;window.addEventListener('popstate',onPop)}catch{}
   active={close};
-  createStack(state.pdf,stack,{root:scroller,resolution:2.25}).then(fn=>{
+  createStack(state.pdf,stack,{root:scroller,resolution:2.25,onError:state.onError}).then(fn=>{
     stackCleanup=fn;
     requestAnimationFrame(()=>{
       const target=stack.querySelector('[data-page="'+clamp(startPage,1,state.pdf.numPages)+'"]');
@@ -237,19 +261,13 @@ function openFullscreen(state,startPage){
 }
 async function mount(host,options){
   if(!host||!options?.url)return()=>{};
-  const state={url:options.url,title:options.title||'Dokument',fileName:options.fileName||'dokument.pdf',downloadEnabled:!!options.downloadEnabled,onDownload:options.onDownload||null,pdf:null};
+  const state={url:options.url,title:options.title||'Dokument',fileName:options.fileName||'dokument.pdf',downloadEnabled:!!options.downloadEnabled,onDownload:options.onDownload||null,onError:options.onError||null,pdf:null};
   host.innerHTML='<div class="h3-pdf-loading"><span>📄</span><strong>Ładowanie dokumentu...</strong></div>';
   let destroyed=false,stackCleanup=()=>{};
   try{
     const lib=await loadPdfJs();
     if(destroyed)return()=>{};
-    const task=lib.getDocument({
-      url:state.url,
-      withCredentials:false,
-      isOffscreenCanvasSupported:false,
-      isImageDecoderSupported:false,
-      canvasMaxAreaInBytes:16777216
-    });
+    const task=lib.getDocument({url:state.url,withCredentials:false});
     state.pdf=await task.promise;
     if(destroyed){task.destroy();return()=>{}}
     host.innerHTML='<div class="h3-pdf-inline-head"><div><strong>Dokument PDF</strong><span>'+state.pdf.numPages+' str.</span></div><div class="h3-pdf-inline-actions"></div></div><div class="h3-pdf-stack h3-pdf-inline-stack"></div><div class="h3-pdf-inline-tip">Stuknij stronę, aby otworzyć pełny ekran i przybliżanie.</div>';
@@ -265,7 +283,7 @@ async function mount(host,options){
       actions.appendChild(dl);
     }
     const stack=host.querySelector('.h3-pdf-inline-stack');
-    stackCleanup=await createStack(state.pdf,stack,{resolution:1.15,onPageClick:p=>openFullscreen(state,p)});
+    stackCleanup=await createStack(state.pdf,stack,{resolution:1.15,onError:state.onError,onPageClick:p=>openFullscreen(state,p)});
   }catch(err){
     console.warn('PDF viewer failed',err);
     if(!destroyed)host.innerHTML='<div class="h3-pdf-error"><strong>Nie udało się wyświetlić PDF.</strong><span>Sprawdź połączenie i spróbuj ponownie.</span></div>';
