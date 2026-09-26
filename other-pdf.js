@@ -43,7 +43,7 @@ async function renderCanvas(pdf,pageNumber,canvas,cssWidth,resolution){
   canvas.style.width=Math.round(unit.width*cssScale)+'px';
   canvas.style.height=Math.round(unit.height*cssScale)+'px';
   canvas.hidden=false;
-  await page.render({canvasContext:canvas.getContext('2d',{alpha:false}),viewport}).promise;
+  await page.render({canvas,viewport,background:'rgb(255,255,255)'}).promise;
 }
 async function createStack(pdf,container,options={}){
   const cleanup=[];
@@ -243,7 +243,13 @@ async function mount(host,options){
   try{
     const lib=await loadPdfJs();
     if(destroyed)return()=>{};
-    const task=lib.getDocument({url:state.url,withCredentials:false});
+    const task=lib.getDocument({
+      url:state.url,
+      withCredentials:false,
+      isOffscreenCanvasSupported:false,
+      isImageDecoderSupported:false,
+      canvasMaxAreaInBytes:16777216
+    });
     state.pdf=await task.promise;
     if(destroyed){task.destroy();return()=>{}}
     host.innerHTML='<div class="h3-pdf-inline-head"><div><strong>Dokument PDF</strong><span>'+state.pdf.numPages+' str.</span></div><div class="h3-pdf-inline-actions"></div></div><div class="h3-pdf-stack h3-pdf-inline-stack"></div><div class="h3-pdf-inline-tip">Stuknij stronę, aby otworzyć pełny ekran i przybliżanie.</div>';
