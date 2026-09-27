@@ -10,6 +10,7 @@ const GAME_INFO={
 };
 const esc=v=>{const d=document.createElement('div');d.textContent=String(v??'');return d.innerHTML};
 const fmt=n=>new Intl.NumberFormat('pl-PL').format(Number(n||0));
+const UUIDISH=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const humanize=k=>String(k||'gra').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
 function gameInfo(key){return GAME_INFO[key]||{title:humanize(key),icon:'🎮'}}
 function resetBtn(metric){return data?.is_super?`<button class="analytics-reset" data-reset-stat="${metric}" title="Wyzeruj statystykę">↺</button>`:''}
@@ -38,13 +39,23 @@ function render(){
 }
 async function load(){
   try{
-    const [baseRes,gamesRes]=await Promise.all([
+    const [baseRes,gamesRes,otherRes]=await Promise.all([
       sb.rpc('admin_get_analytics',{p_device_token:adminDevice}),
-      sb.rpc('admin_get_game_analytics',{p_device_token:adminDevice})
+      sb.rpc('admin_get_game_analytics',{p_device_token:adminDevice}),
+      sb.rpc('admin_get_other',{p_device_token:adminDevice})
     ]);
     if(baseRes.error)throw baseRes.error;
     if(gamesRes.error)throw gamesRes.error;
-    data={...(baseRes.data||{}),games:gamesRes.data?.games||[],is_super:!!(baseRes.data?.is_super||gamesRes.data?.is_super)};
+    const currentTitles=new Map();
+    const collectTitles=rows=>(rows||[]).forEach(t=>{currentTitles.set(String(t.id),String(t.title||'Kafelek'));collectTitles(t.children||[])});
+    if(!otherRes.error)collectTitles(otherRes.data||[]);
+    const otherTiles=(baseRes.data?.other_tiles||[]).map(t=>{
+      const id=String(t.id||'');
+      if(currentTitles.has(id))return{...t,title:currentTitles.get(id)};
+      if(UUIDISH.test(id))return{...t,title:'Usunięty kafelek'};
+      return t;
+    });
+    data={...(baseRes.data||{}),other_tiles:otherTiles,games:gamesRes.data?.games||[],is_super:!!(baseRes.data?.is_super||gamesRes.data?.is_super)};
     render();
   }catch(e){card.innerHTML=`<div class="empty">${esc(e.message||'Nie udało się pobrać statystyk.')}</div>`}
 }
