@@ -188,47 +188,30 @@ function openFullscreen(state,startPage){
   const stack=overlay.querySelector('.h3-pdf-full-stack');
   const counter=overlay.querySelector('.h3-pdf-counter');
   let baseWidth=Math.max(260,Math.min(920,window.innerWidth-16));
-  let zoom=1,pinchStartDist=0,pinchStartZoom=1,pinchCenter=null,pinching=false,lastTap=0,lastTapX=0,lastTapY=0,suppressTapUntil=0,stackCleanup=()=>{},scrollTick=0,closed=false,pushed=false,qualityTimer=0,orientationHintTimer=0;
-  let orientationMode='fixed';
+  let zoom=1,pinchStartDist=0,pinchStartZoom=1,pinchCenter=null,pinching=false,lastTap=0,lastTapX=0,lastTapY=0,suppressTapUntil=0,stackCleanup=()=>{},scrollTick=0,closed=false,pushed=false,qualityTimer=0,orientationHintTimer=0,fullscreenRequest=null;
   stage.style.width=baseWidth+'px';
-  const rotate=document.createElement('button');
-  rotate.type='button';rotate.className='h3-pdf-rotate compact';rotate.textContent='↻';
-  actions.appendChild(rotate);
-  function updateRotateButton(){
-    const automatic=orientationMode==='auto';
-    const label=automatic?'Wyłącz obrót automatyczny':'Włącz obrót automatyczny';
-    rotate.classList.toggle('is-auto',automatic);
-    rotate.textContent=automatic?'AUTO':'↻';
-    rotate.setAttribute('aria-label',label);rotate.title=label;
-  }
-  updateRotateButton();
   const zoomHint=overlay.querySelector('.h3-pdf-zoom-hint');
   const originalHint=zoomHint.textContent;
-  async function toggleOrientation(){
-    const enableAuto=orientationMode!=='auto';
+  async function enterFullscreenAutomatically(){
     const orientation=window.screen?.orientation;
-    const wasFullscreen=!!document.fullscreenElement;
     try{
+      if(document.fullscreenElement!==overlay){
+        if(typeof overlay.requestFullscreen!=='function')throw new Error('Fullscreen API unavailable');
+        fullscreenRequest=overlay.requestFullscreen({navigationUI:'hide'});
+        await fullscreenRequest;
+      }
+      if(closed)return;
+      if(document.fullscreenElement!==overlay)throw new Error('PDF viewer did not enter fullscreen');
       if(!orientation||typeof orientation.lock!=='function')throw new Error('Screen Orientation API unavailable');
-      if(!document.fullscreenElement&&typeof overlay.requestFullscreen==='function')await overlay.requestFullscreen();
-      const lockType=enableAuto?'any':((orientation.type||'').startsWith('landscape')?'landscape':'portrait');
-      await orientation.lock(lockType);
-      orientationMode=enableAuto?'auto':'fixed';
-      updateRotateButton();
-      clearTimeout(orientationHintTimer);
-      zoomHint.textContent=enableAuto?'Obrót automatyczny włączony.':'Obrót automatyczny wyłączony.';
-      orientationHintTimer=setTimeout(()=>{if(!closed)zoomHint.textContent=originalHint},2200);
+      await orientation.lock('any');
       setTimeout(refreshLayout,100);
     }catch(err){
-      console.warn('PDF orientation lock failed',err);
-      if(!wasFullscreen&&document.fullscreenElement===overlay){try{document.exitFullscreen()}catch{}}
+      console.warn('PDF automatic orientation failed',err);
       clearTimeout(orientationHintTimer);
-      zoomHint.textContent='Obrót niedostępny. Włącz automatyczne obracanie w telefonie.';
-      rotate.setAttribute('aria-label','Obrót niedostępny. Włącz automatyczne obracanie w telefonie.');
-      orientationHintTimer=setTimeout(()=>{if(!closed){zoomHint.textContent=originalHint;updateRotateButton()}},2800);
+      zoomHint.textContent='Włącz automatyczne obracanie ekranu w telefonie.';
+      orientationHintTimer=setTimeout(()=>{if(!closed)zoomHint.textContent=originalHint},2800);
     }
   }
-  rotate.addEventListener('click',toggleOrientation);
   function scheduleQualityRender(){
     clearTimeout(qualityTimer);
     qualityTimer=setTimeout(async()=>{
@@ -252,8 +235,8 @@ function openFullscreen(state,startPage){
   }
   function onViewportChange(){refreshLayout()}
   function onFullscreenStateChange(){
-    if(document.fullscreenElement!==overlay&&orientationMode==='auto'){
-      orientationMode='fixed';updateRotateButton();
+    if(document.fullscreenElement!==overlay){
+      try{window.screen?.orientation?.unlock?.()}catch{}
     }
     refreshLayout();
   }
@@ -360,6 +343,7 @@ function openFullscreen(state,startPage){
   window.addEventListener('orientationchange',onViewportChange,{passive:true});
   try{history.pushState({...history.state,h3PdfViewer:true},'',location.href);pushed=true;window.addEventListener('popstate',onPop)}catch{}
   active={close};
+  enterFullscreenAutomatically();
   createStack(state.pdf,stack,{root:scroller,resolution:2.25,onError:state.onError,onPageRendered:scheduleQualityRender}).then(fn=>{
     stackCleanup=fn;
     scheduleQualityRender();
