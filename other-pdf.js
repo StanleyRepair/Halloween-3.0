@@ -188,34 +188,44 @@ function openFullscreen(state,startPage){
   const stack=overlay.querySelector('.h3-pdf-full-stack');
   const counter=overlay.querySelector('.h3-pdf-counter');
   let baseWidth=Math.max(260,Math.min(920,window.innerWidth-16));
-  let zoom=1,pinchStartDist=0,pinchStartZoom=1,pinchCenter=null,pinching=false,lastTap=0,lastTapX=0,lastTapY=0,suppressTapUntil=0,stackCleanup=()=>{},scrollTick=0,closed=false,pushed=false,qualityTimer=0,orientationLockRequested=false;
-  let orientationMode=(window.screen?.orientation?.type||'').startsWith('landscape')?'landscape':'portrait';
+  let zoom=1,pinchStartDist=0,pinchStartZoom=1,pinchCenter=null,pinching=false,lastTap=0,lastTapX=0,lastTapY=0,suppressTapUntil=0,stackCleanup=()=>{},scrollTick=0,closed=false,pushed=false,qualityTimer=0,orientationHintTimer=0;
+  let orientationMode='fixed';
   stage.style.width=baseWidth+'px';
   const rotate=document.createElement('button');
   rotate.type='button';rotate.className='h3-pdf-rotate compact';rotate.textContent='↻';
   actions.appendChild(rotate);
   function updateRotateButton(){
-    const next=orientationMode==='landscape'?'portrait':'landscape';
-    const label=next==='landscape'?'Obróć ekran do orientacji poziomej':'Przywróć orientację pionową';
+    const automatic=orientationMode==='auto';
+    const label=automatic?'Wyłącz obrót automatyczny':'Włącz obrót automatyczny';
+    rotate.classList.toggle('is-auto',automatic);
+    rotate.textContent=automatic?'AUTO':'↻';
     rotate.setAttribute('aria-label',label);rotate.title=label;
   }
   updateRotateButton();
   const zoomHint=overlay.querySelector('.h3-pdf-zoom-hint');
   const originalHint=zoomHint.textContent;
   async function toggleOrientation(){
-    const next=orientationMode==='landscape'?'portrait':'landscape';
+    const enableAuto=orientationMode!=='auto';
     const orientation=window.screen?.orientation;
+    const wasFullscreen=!!document.fullscreenElement;
     try{
       if(!orientation||typeof orientation.lock!=='function')throw new Error('Screen Orientation API unavailable');
       if(!document.fullscreenElement&&typeof overlay.requestFullscreen==='function')await overlay.requestFullscreen();
-      await orientation.lock(next);
-      orientationMode=next;orientationLockRequested=true;updateRotateButton();
+      const lockType=enableAuto?'any':((orientation.type||'').startsWith('landscape')?'landscape':'portrait');
+      await orientation.lock(lockType);
+      orientationMode=enableAuto?'auto':'fixed';
+      updateRotateButton();
+      clearTimeout(orientationHintTimer);
+      zoomHint.textContent=enableAuto?'Obrót automatyczny włączony.':'Obrót automatyczny wyłączony.';
+      orientationHintTimer=setTimeout(()=>{if(!closed)zoomHint.textContent=originalHint},2200);
       setTimeout(refreshLayout,100);
     }catch(err){
       console.warn('PDF orientation lock failed',err);
+      if(!wasFullscreen&&document.fullscreenElement===overlay){try{document.exitFullscreen()}catch{}}
+      clearTimeout(orientationHintTimer);
       zoomHint.textContent='Obrót niedostępny. Włącz automatyczne obracanie w telefonie.';
       rotate.setAttribute('aria-label','Obrót niedostępny. Włącz automatyczne obracanie w telefonie.');
-      setTimeout(()=>{if(!closed){zoomHint.textContent=originalHint;updateRotateButton()}},2800);
+      orientationHintTimer=setTimeout(()=>{if(!closed){zoomHint.textContent=originalHint;updateRotateButton()}},2800);
     }
   }
   rotate.addEventListener('click',toggleOrientation);
@@ -240,10 +250,10 @@ function openFullscreen(state,startPage){
     if(Math.abs(next-baseWidth)>1){baseWidth=next;stage.style.width=Math.round(baseWidth*zoom)+'px'}
     scheduleQualityRender();
   }
-  function onViewportChange(){
-    if(!orientationLockRequested){
-      orientationMode=(window.screen?.orientation?.type||'').startsWith('landscape')?'landscape':'portrait';
-      updateRotateButton();
+  function onViewportChange(){refreshLayout()}
+  function onFullscreenStateChange(){
+    if(document.fullscreenElement!==overlay&&orientationMode==='auto'){
+      orientationMode='fixed';updateRotateButton();
     }
     refreshLayout();
   }
@@ -307,6 +317,7 @@ function openFullscreen(state,startPage){
   function cleanup(){
     if(closed)return;closed=true;
     clearTimeout(qualityTimer);
+    clearTimeout(orientationHintTimer);
     stackCleanup();
     scroller.removeEventListener('touchstart',onTouchStart);
     scroller.removeEventListener('touchmove',onTouchMove);
@@ -315,6 +326,7 @@ function openFullscreen(state,startPage){
     scroller.removeEventListener('pointerup',onPointerUp);
     scroller.removeEventListener('scroll',onScroll);
     document.removeEventListener('keydown',onKey);
+    document.removeEventListener('fullscreenchange',onFullscreenStateChange);
     window.removeEventListener('popstate',onPop);
     window.removeEventListener('resize',onViewportChange);
     window.removeEventListener('orientationchange',onViewportChange);
@@ -343,6 +355,7 @@ function openFullscreen(state,startPage){
   scroller.addEventListener('pointerup',onPointerUp,{passive:true});
   scroller.addEventListener('scroll',onScroll,{passive:true});
   document.addEventListener('keydown',onKey);
+  document.addEventListener('fullscreenchange',onFullscreenStateChange);
   window.addEventListener('resize',onViewportChange,{passive:true});
   window.addEventListener('orientationchange',onViewportChange,{passive:true});
   try{history.pushState({...history.state,h3PdfViewer:true},'',location.href);pushed=true;window.addEventListener('popstate',onPop)}catch{}
