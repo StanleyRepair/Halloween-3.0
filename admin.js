@@ -14,7 +14,23 @@ function galleryPhoto(path){return `${SUPABASE_URL}/storage/v1/object/public/adm
 function fmtDate(v){if(!v)return '—';try{return new Intl.DateTimeFormat('pl-PL',{dateStyle:'short',timeStyle:'short'}).format(new Date(v))}catch{return v}}
 function actionLabel(a){return({admin_activated:'Aktywacja administratora',admin_invite_created:'Utworzono kod administratora',admin_invite_revoked:'Unieważniono kod administratora',admin_removed:'Usunięto administratora',admin_limit_changed:'Zmieniono limit administratorów',admin_name_changed:'Zmieniono nazwę administratora',super_admin_access_recovered:'Odzyskano dostęp Super Admina',contest_settings_changed:'Zmieniono ustawienia konkursu',contest_entry_deleted:'Usunięto zgłoszenie',gallery_folder_created:'Utworzono folder zdjęć',gallery_folder_deleted:'Usunięto folder zdjęć',gallery_photo_added:'Dodano zdjęcie',gallery_photo_deleted:'Usunięto zdjęcie',gallery_order_changed:'Zmieniono kolejność kafelków',google_album_changed:'Zmieniono link Google Zdjęcia'})[a]||a}
 async function activateWithCode(code){const{data,error}=await sb.rpc('admin_activate_access',{p_device_token:adminDevice,p_activation_code:code});if(error)throw error;return data}
-async function recoverWithCode(code){const{data,error}=await sb.rpc('admin_recover_super_access',{p_device_token:adminDevice,p_recovery_code:code});if(error)throw error;persistAdminToken(adminDevice);return data}
+async function recoverWithCode(code){
+ const steps=[
+  ['admin_recover_access',{p_device_token:adminDevice,p_recovery_code:code}],
+  ['admin_pair_access',{p_device_token:adminDevice,p_pairing_code:code}],
+  ['admin_recover_super_access',{p_device_token:adminDevice,p_recovery_code:code}]
+ ];
+ let lastError;
+ for(const[name,args]of steps){
+  try{
+   const{data,error}=await sb.rpc(name,args);
+   if(error){lastError=error;continue}
+   persistAdminToken(adminDevice);
+   return data
+  }catch(e){lastError=e}
+ }
+ throw lastError||new Error('Nie udało się użyć kodu.')
+}
 async function loadDashboard(){persistAdminToken(adminDevice);const{data,error}=await sb.rpc('admin_get_dashboard',{p_device_token:adminDevice});if(error){activation.hidden=false;dashboard.hidden=true;return false}activation.hidden=true;dashboard.hidden=false;renderDashboard(data);await loadGallery();return true}
 function renderDashboard(data){const settings=data.settings||{};currentSelf=data.self||null;currentPhase=settings.phase||'closed';identity.innerHTML=`<div>Zalogowano jako <strong>${esc(currentSelf?.display_name||'Administrator')}</strong></div><span class="role-badge">${currentSelf?.role==='super_admin'?'SUPER ADMIN':'ADMIN'}</span>`;entryCount.textContent=(data.entries||[]).length;voteCount.textContent=data.total_votes||0;allowEdit.checked=!!settings.allow_entry_edit;allowEdit.disabled=currentPhase!=='registration';document.querySelectorAll('[data-phase]').forEach(b=>b.classList.toggle('active',b.dataset.phase===currentPhase));entriesEl.innerHTML=(data.entries||[]).map(e=>`<div class="entry-row"><img src="${photo(e.image_path)}" alt=""><div class="entry-info"><strong>${esc(e.name)}</strong><p>${esc(e.description||'')}</p><span class="vote-pill">${e.vote_count} gł.</span></div><button class="delete-button" data-delete="${e.id}">Usuń</button></div>`).join('')||'<div class="empty">Brak zgłoszeń.</div>';entriesEl.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteEntry(b.dataset.delete));renderAudit(data.audit_logs||[]);renderSuper(data.admin_management)}
 function renderAudit(logs){auditLogs.innerHTML=logs.map(l=>`<div class="audit-row"><strong>${esc(actionLabel(l.action))}</strong><div class="audit-meta"><span class="audit-actor">${esc(l.admin_name)}</span> • ${esc(fmtDate(l.created_at))}</div><p>${auditDetails(l)}</p></div>`).join('')||'<div class="empty">Brak zapisanych zmian.</div>'}
