@@ -57,7 +57,7 @@ async function renderCanvas(pdf,pageNumber,canvas,cssWidth,resolution){
   const unit=page.getViewport({scale:1});
   const width=Math.max(120,cssWidth||320);
   const cssScale=width/unit.width;
-  const quality=Math.min(Math.max(Number(resolution)||1,1),2.5);
+  const quality=Math.min(Math.max(Number(resolution)||1,1),8);
   const viewport=page.getViewport({scale:cssScale*quality});
   canvas.width=Math.max(1,Math.floor(viewport.width));
   canvas.height=Math.max(1,Math.floor(viewport.height));
@@ -104,7 +104,10 @@ async function createStack(pdf,container,options={}){
       const innerWidth=Math.max(220,el.clientWidth||container.clientWidth||320);
       await renderCanvas(pdf,Number(el.dataset.page),el.querySelector('canvas'),innerWidth,resolution);
       el.dataset.rendered='1';
+      el.dataset.resolution=String(resolution);
+      el.dataset.renderedWidth=String(innerWidth);
       el.classList.add('is-rendered');
+      try{options.onPageRendered?.(el)}catch{}
     }catch(err){
       console.warn('PDF page render failed',err);
       try{options.onError?.(err,Number(el.dataset.page)||0)}catch{}
@@ -124,7 +127,36 @@ async function createStack(pdf,container,options={}){
     pages.forEach(renderOne);
   }
   if(pages[0])renderOne(pages[0]);
-  return ()=>cleanup.forEach(fn=>fn());
+  const dispose=()=>cleanup.forEach(fn=>fn());
+  dispose.rerenderVisible=async getResolution=>{
+    if(!root||typeof getResolution!=='function')return;
+    const bounds=root.getBoundingClientRect();
+    const margin=Math.min(Math.max(root.clientHeight*.35,120),480);
+    for(const el of pages){
+      if(!el.dataset.rendered||el.dataset.rendering||el.classList.contains('is-error'))continue;
+      const rect=el.getBoundingClientRect();
+      if(rect.bottom<bounds.top-margin||rect.top>bounds.bottom+margin)continue;
+      const canvas=el.querySelector('canvas');
+      if(!canvas)continue;
+      const innerWidth=Math.max(220,el.clientWidth||container.clientWidth||320);
+      const target=clamp(Number(await getResolution(el,innerWidth))||resolution,1,8);
+      const previous=Number(el.dataset.resolution)||resolution;
+      const previousWidth=Number(el.dataset.renderedWidth)||innerWidth;
+      if(target<=previous+.15&&Math.abs(innerWidth-previousWidth)<Math.max(20,previousWidth*.05))continue;
+      el.dataset.rendering='1';
+      try{
+        await renderCanvas(pdf,Number(el.dataset.page),canvas,innerWidth,target);
+        el.dataset.resolution=String(target);
+        el.dataset.renderedWidth=String(innerWidth);
+      }catch(err){
+        console.warn('PDF page refresh failed',err);
+        try{options.onError?.(err,Number(el.dataset.page)||0)}catch{}
+      }finally{
+        delete el.dataset.rendering;
+      }
+    }
+  };
+  return dispose;
 }
 function pageAtCenter(scroller,stack){
   const center=scroller.scrollTop+scroller.clientHeight/2;
@@ -155,9 +187,66 @@ function openFullscreen(state,startPage){
   const stage=overlay.querySelector('.h3-pdf-full-stage');
   const stack=overlay.querySelector('.h3-pdf-full-stack');
   const counter=overlay.querySelector('.h3-pdf-counter');
-  const baseWidth=Math.max(260,Math.min(920,window.innerWidth-16));
-  let zoom=1,pinchStartDist=0,pinchStartZoom=1,pinchCenter=null,pinching=false,lastTap=0,lastTapX=0,lastTapY=0,suppressTapUntil=0,stackCleanup=()=>{},scrollTick=0,closed=false,pushed=false;
+  let baseWidth=Math.max(260,Math.min(920,window.innerWidth-16));
+  let zoom=1,pinchStartDist=0,pinchStartZoom=1,pinchCenter=null,pinching=false,lastTap=0,lastTapX=0,lastTapY=0,suppressTapUntil=0,stackCleanup=()=>{},scrollTick=0,closed=false,pushed=false,qualityTimer=0,orientationLockRequested=false;
+  let orientationMode=(window.screen?.orientation?.type||'').startsWith('landscape')?'landscape':'portrait';
   stage.style.width=baseWidth+'px';
+  const rotate=document.createElement('button');
+  rotate.type='button';rotate.className='h3-pdf-rotate compact';rotate.textContent='↻';
+  actions.appendChild(rotate);
+  function updateRotateButton(){
+    const next=orientationMode==='landscape'?'portrait':'landscape';
+    const label=next==='landscape'?'Obróć ekran do orientacji poziomej':'Przywróć orientację pionową';
+    rotate.setAttribute('aria-label',label);rotate.title=label;
+  }
+  updateRotateButton();
+  const zoomHint=overlay.querySelector('.h3-pdf-zoom-hint');
+  const originalHint=zoomHint.textContent;
+  async function toggleOrientation(){
+    const next=orientationMode==='landscape'?'portrait':'landscape';
+    const orientation=window.screen?.orientation;
+    try{
+      if(!orientation||typeof orientation.lock!=='function')throw new Error('Screen Orientation API unavailable');
+      if(!document.fullscreenElement&&typeof overlay.requestFullscreen==='function')await overlay.requestFullscreen();
+      await orientation.lock(next);
+      orientationMode=next;orientationLockRequested=true;updateRotateButton();
+      setTimeout(refreshLayout,100);
+    }catch(err){
+      console.warn('PDF orientation lock failed',err);
+      zoomHint.textContent='Obrót niedostępny. Włącz automatyczne obracanie w telefonie.';
+      rotate.setAttribute('aria-label','Obrót niedostępny. Włącz automatyczne obracanie w telefonie.');
+      setTimeout(()=>{if(!closed){zoomHint.textContent=originalHint;updateRotateButton()}},2800);
+    }
+  }
+  rotate.addEventListener('click',toggleOrientation);
+  function scheduleQualityRender(){
+    clearTimeout(qualityTimer);
+    qualityTimer=setTimeout(async()=>{
+      if(closed||typeof stackCleanup.rerenderVisible!=='function')return;
+      try{
+        await stackCleanup.rerenderVisible(async(el,cssWidth)=>{
+          const page=await state.pdf.getPage(Number(el.dataset.page));
+          const unit=page.getViewport({scale:1});
+          const cssHeight=cssWidth*unit.height/unit.width;
+          const pixels=cssWidth*cssHeight;
+          const deviceScale=Math.max(2.25,Number(window.devicePixelRatio)||1);
+          return Math.min(deviceScale,Math.sqrt(10000000/Math.max(1,pixels)),8);
+        });
+      }catch(err){console.warn('PDF quality refresh failed',err)}
+    },180);
+  }
+  function refreshLayout(){
+    const next=Math.max(260,Math.min(920,window.innerWidth-16));
+    if(Math.abs(next-baseWidth)>1){baseWidth=next;stage.style.width=Math.round(baseWidth*zoom)+'px'}
+    scheduleQualityRender();
+  }
+  function onViewportChange(){
+    if(!orientationLockRequested){
+      orientationMode=(window.screen?.orientation?.type||'').startsWith('landscape')?'landscape':'portrait';
+      updateRotateButton();
+    }
+    refreshLayout();
+  }
   function applyZoom(next,cx,cy){
     next=clamp(next,1,3.25);
     const old=zoom;
@@ -172,6 +261,7 @@ function openFullscreen(state,startPage){
     scroller.scrollLeft=Math.max(0,contentX*(zoom/old)-x);
     scroller.scrollTop=Math.max(0,contentY*(zoom/old)-y);
     overlay.classList.toggle('is-zoomed',zoom>1.01);
+    scheduleQualityRender();
   }
   function distance(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
   function midpoint(a,b){return{x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2}}
@@ -216,6 +306,7 @@ function openFullscreen(state,startPage){
   }
   function cleanup(){
     if(closed)return;closed=true;
+    clearTimeout(qualityTimer);
     stackCleanup();
     scroller.removeEventListener('touchstart',onTouchStart);
     scroller.removeEventListener('touchmove',onTouchMove);
@@ -225,6 +316,10 @@ function openFullscreen(state,startPage){
     scroller.removeEventListener('scroll',onScroll);
     document.removeEventListener('keydown',onKey);
     window.removeEventListener('popstate',onPop);
+    window.removeEventListener('resize',onViewportChange);
+    window.removeEventListener('orientationchange',onViewportChange);
+    try{window.screen?.orientation?.unlock?.()}catch{}
+    try{if(document.fullscreenElement===overlay)document.exitFullscreen()}catch{}
     overlay.remove();
     document.body.classList.remove('h3-pdf-open');
     active=null;
@@ -248,10 +343,13 @@ function openFullscreen(state,startPage){
   scroller.addEventListener('pointerup',onPointerUp,{passive:true});
   scroller.addEventListener('scroll',onScroll,{passive:true});
   document.addEventListener('keydown',onKey);
+  window.addEventListener('resize',onViewportChange,{passive:true});
+  window.addEventListener('orientationchange',onViewportChange,{passive:true});
   try{history.pushState({...history.state,h3PdfViewer:true},'',location.href);pushed=true;window.addEventListener('popstate',onPop)}catch{}
   active={close};
-  createStack(state.pdf,stack,{root:scroller,resolution:2.25,onError:state.onError}).then(fn=>{
+  createStack(state.pdf,stack,{root:scroller,resolution:2.25,onError:state.onError,onPageRendered:scheduleQualityRender}).then(fn=>{
     stackCleanup=fn;
+    scheduleQualityRender();
     requestAnimationFrame(()=>{
       const target=stack.querySelector('[data-page="'+clamp(startPage,1,state.pdf.numPages)+'"]');
       if(target)scroller.scrollTop=Math.max(0,target.offsetTop-8);
